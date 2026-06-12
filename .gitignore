@@ -1,0 +1,45 @@
+# Python caches
+__pycache__/
+*.py[cod]
+*$py.class
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+
+# Virtual environments
+.venv/
+venv/
+env/
+
+# Local IDE and OS files
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
+
+# Raw and processed datasets
+data/raw/*
+!data/raw/.gitkeep
+data/processed/*
+!data/processed/.gitkeep
+
+# Generated model artifacts
+models/**/*.joblib
+models/**/*.pkl
+models/**/*.pt
+models/**/*.pth
+
+# Generated figures
+figures/**/*.png
+figures/**/*.jpg
+figures/**/*.jpeg
+figures/**/*.svg
+figures/**/*.pdf
+
+# Generated experiment outputs
+results/**/*.csv
+results/**/*.json
+results/**/*.txt
+
+# Keep placeholder files
+!**/.gitkeep

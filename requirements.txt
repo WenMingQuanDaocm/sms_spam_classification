@@ -1,0 +1,9 @@
+# Initial dependency list. Pin exact versions after creating the formal
+# experiment environment.
+numpy
+pandas
+matplotlib
+scikit-learn
+torch
+tqdm
+joblib
