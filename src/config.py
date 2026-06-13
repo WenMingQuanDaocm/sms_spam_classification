@@ -43,6 +43,14 @@ MLP_VALIDATION_METRICS_PATH = METRICS_DIR / "mlp_validation_metrics.json"
 MLP_TRAINING_HISTORY_PATH = METRICS_DIR / "mlp_training_history.csv"
 LEARNING_RATE_EXPERIMENTS_PATH = METRICS_DIR / "learning_rate_experiments.csv"
 DROPOUT_EXPERIMENTS_PATH = METRICS_DIR / "dropout_experiments.csv"
+BASELINE_TEST_METRICS_PATH = METRICS_DIR / "baseline_test_metrics.json"
+LOGISTIC_TEST_METRICS_PATH = METRICS_DIR / "logistic_test_metrics.json"
+MLP_TEST_METRICS_PATH = METRICS_DIR / "mlp_test_metrics.json"
+MODEL_COMPARISON_PATH = METRICS_DIR / "model_comparison.csv"
+LOGISTIC_TEST_PREDICTIONS_PATH = PREDICTIONS_DIR / "logistic_test_predictions.csv"
+MLP_TEST_PREDICTIONS_PATH = PREDICTIONS_DIR / "mlp_test_predictions.csv"
+FALSE_POSITIVES_PATH = ERROR_ANALYSIS_DIR / "false_positives.csv"
+FALSE_NEGATIVES_PATH = ERROR_ANALYSIS_DIR / "false_negatives.csv"
 
 RANDOM_STATE = 42
 TRAIN_SIZE = 0.60

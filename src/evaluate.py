@@ -6,6 +6,10 @@ import json
 from pathlib import Path
 from typing import Any
 
+import matplotlib
+
+matplotlib.use("Agg")
+import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
 from sklearn.metrics import (
@@ -72,3 +76,42 @@ def save_metrics(metrics: dict[str, Any], path: str | Path) -> Path:
         encoding="utf-8",
     )
     return output_path
+
+
+def plot_confusion_matrix(
+    metrics: dict[str, Any],
+    output_path: str | Path,
+    title: str,
+) -> Path:
+    """Plot a confusion matrix from a metrics dictionary."""
+    output = Path(output_path)
+    output.parent.mkdir(parents=True, exist_ok=True)
+    labels = metrics["confusion_matrix"]["labels"]
+    matrix = np.asarray(metrics["confusion_matrix"]["matrix"])
+
+    fig, ax = plt.subplots(figsize=(5, 4))
+    image = ax.imshow(matrix, cmap="Blues")
+    ax.set_title(title)
+    ax.set_xlabel("Predicted label")
+    ax.set_ylabel("True label")
+    ax.set_xticks(np.arange(len(labels)), labels=labels)
+    ax.set_yticks(np.arange(len(labels)), labels=labels)
+
+    threshold = matrix.max() / 2 if matrix.max() else 0
+    for row_index in range(matrix.shape[0]):
+        for column_index in range(matrix.shape[1]):
+            color = "white" if matrix[row_index, column_index] > threshold else "black"
+            ax.text(
+                column_index,
+                row_index,
+                str(int(matrix[row_index, column_index])),
+                ha="center",
+                va="center",
+                color=color,
+            )
+
+    fig.colorbar(image, ax=ax, fraction=0.046, pad=0.04)
+    fig.tight_layout()
+    fig.savefig(output, dpi=150)
+    plt.close(fig)
+    return output

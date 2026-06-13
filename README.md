@@ -161,6 +161,37 @@ figures/hyperparameters/dropout_sensitivity.png
 
 每个实验还会保存独立的 checkpoint、训练历史、验证指标和曲线，避免覆盖第五阶段默认 MLP 结果。该阶段仍然不会读取或评价测试集。
 
+## 第七阶段：最终测试与错误分析
+
+完成验证集调参后，运行：
+
+```powershell
+python scripts/run_final_evaluation.py
+```
+
+该脚本首次正式使用测试集：
+
+- 评价多数类 baseline、逻辑回归和 MLP。
+- 保存测试集指标和模型对比表。
+- 保存逻辑回归和 MLP 的测试集预测。
+- 生成逻辑回归和 MLP 的混淆矩阵图。
+- 基于 MLP 预测导出误报和漏报样本。
+
+输出文件包括：
+
+```text
+results/metrics/baseline_test_metrics.json
+results/metrics/logistic_test_metrics.json
+results/metrics/mlp_test_metrics.json
+results/metrics/model_comparison.csv
+results/predictions/logistic_test_predictions.csv
+results/predictions/mlp_test_predictions.csv
+results/error_analysis/false_positives.csv
+results/error_analysis/false_negatives.csv
+figures/confusion_matrix/logistic_confusion_matrix.png
+figures/confusion_matrix/mlp_confusion_matrix.png
+```
+
 ## 第五阶段：MLP 基础训练
 
 在第三阶段完成后，运行：
