@@ -82,3 +82,31 @@ python scripts/run_eda.py
 该脚本会读取 `data/raw/SMSSpamCollection`，检查缺失值、空文本、非法标签、重复样本和标签冲突，然后生成 EDA 图表与 `results/metrics/eda_summary.json`。
 
 该脚本不会划分数据、拟合 TF-IDF、训练模型或在测试集上评估。
+
+## 第三阶段：数据划分与 TF-IDF
+
+当原始数据和依赖都准备好后，运行：
+
+```powershell
+python scripts/prepare_features.py
+```
+
+该脚本会先执行保守清洗，然后按 60%/20%/20% 进行分层训练、验证、测试划分，保存到：
+
+```text
+data/processed/train.csv
+data/processed/val.csv
+data/processed/test.csv
+```
+
+随后脚本只在训练集上拟合 TF-IDF，并将验证集和测试集仅用于 `transform`。拟合后的向量器保存为：
+
+```text
+models/tfidf_vectorizer.joblib
+```
+
+预处理摘要保存为：
+
+```text
+results/metrics/preprocessing_summary.json
+```
