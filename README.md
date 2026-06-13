@@ -110,3 +110,29 @@ models/tfidf_vectorizer.joblib
 ```text
 results/metrics/preprocessing_summary.json
 ```
+
+## 第四阶段：Baseline 与逻辑回归
+
+在第二、第三阶段完成后，运行：
+
+```powershell
+python scripts/run_classical_models.py
+```
+
+该脚本只使用训练集和验证集：
+
+- 训练多数类 baseline，并在验证集上评价。
+- 使用已保存的训练集 TF-IDF 向量器转换训练集和验证集。
+- 训练默认逻辑回归，并在验证集上评价。
+- 保存逻辑回归模型和特征权重。
+
+输出文件包括：
+
+```text
+results/metrics/baseline_metrics.json
+results/metrics/logistic_metrics.json
+results/metrics/logistic_feature_weights.csv
+models/logistic_regression/logistic_regression.joblib
+```
+
+该阶段不会读取或评价测试集。

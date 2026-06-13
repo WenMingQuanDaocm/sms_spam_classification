@@ -28,12 +28,16 @@ MODEL_ARTIFACTS_DIR = PROJECT_ROOT / "models"
 LOGISTIC_MODEL_DIR = MODEL_ARTIFACTS_DIR / "logistic_regression"
 MLP_MODEL_DIR = MODEL_ARTIFACTS_DIR / "mlp"
 TFIDF_VECTORIZER_PATH = MODEL_ARTIFACTS_DIR / "tfidf_vectorizer.joblib"
+LOGISTIC_MODEL_PATH = LOGISTIC_MODEL_DIR / "logistic_regression.joblib"
 
 RESULTS_DIR = PROJECT_ROOT / "results"
 METRICS_DIR = RESULTS_DIR / "metrics"
 PREDICTIONS_DIR = RESULTS_DIR / "predictions"
 ERROR_ANALYSIS_DIR = RESULTS_DIR / "error_analysis"
 PREPROCESSING_SUMMARY_PATH = METRICS_DIR / "preprocessing_summary.json"
+BASELINE_METRICS_PATH = METRICS_DIR / "baseline_metrics.json"
+LOGISTIC_METRICS_PATH = METRICS_DIR / "logistic_metrics.json"
+LOGISTIC_FEATURE_WEIGHTS_PATH = METRICS_DIR / "logistic_feature_weights.csv"
 
 RANDOM_STATE = 42
 TRAIN_SIZE = 0.60
