@@ -137,6 +137,30 @@ models/logistic_regression/logistic_regression.joblib
 
 该阶段不会读取或评价测试集。
 
+## 第六阶段：超参数敏感性实验
+
+在第五阶段完成后，运行：
+
+```powershell
+python scripts/run_hyperparameter_analysis.py
+```
+
+该脚本执行两个受控实验：
+
+- 学习率实验：固定 Dropout 为 `0.3`，只比较 `0.01`、`0.001`、`0.0001`。
+- Dropout 实验：固定学习率为上一组验证 Macro-F1 最优值，只比较 `0.0`、`0.3`、`0.5`。
+
+输出文件包括：
+
+```text
+results/metrics/learning_rate_experiments.csv
+results/metrics/dropout_experiments.csv
+figures/hyperparameters/learning_rate_sensitivity.png
+figures/hyperparameters/dropout_sensitivity.png
+```
+
+每个实验还会保存独立的 checkpoint、训练历史、验证指标和曲线，避免覆盖第五阶段默认 MLP 结果。该阶段仍然不会读取或评价测试集。
+
 ## 第五阶段：MLP 基础训练
 
 在第三阶段完成后，运行：

@@ -223,6 +223,7 @@ def train_mlp_validation(
     checkpoint_path: str | Path = MLP_CHECKPOINT_PATH,
     history_path: str | Path = MLP_TRAINING_HISTORY_PATH,
     metrics_path: str | Path = MLP_VALIDATION_METRICS_PATH,
+    training_curves_path: str | Path = TRAINING_FIGURES_DIR / "mlp_training_curves.png",
     config: dict[str, Any] | None = None,
 ) -> dict[str, Any]:
     """Train the default MLP and evaluate the best checkpoint on validation."""
@@ -308,7 +309,7 @@ def train_mlp_validation(
 
     training_time_seconds = time.perf_counter() - start_time
     history_output = save_training_history(history, history_path)
-    curves_output = plot_training_curves(history)
+    curves_output = plot_training_curves(history, training_curves_path)
 
     metrics = evaluate_predictions(
         validation_data[TARGET_COLUMN],

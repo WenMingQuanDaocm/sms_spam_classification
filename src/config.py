@@ -41,6 +41,8 @@ LOGISTIC_METRICS_PATH = METRICS_DIR / "logistic_metrics.json"
 LOGISTIC_FEATURE_WEIGHTS_PATH = METRICS_DIR / "logistic_feature_weights.csv"
 MLP_VALIDATION_METRICS_PATH = METRICS_DIR / "mlp_validation_metrics.json"
 MLP_TRAINING_HISTORY_PATH = METRICS_DIR / "mlp_training_history.csv"
+LEARNING_RATE_EXPERIMENTS_PATH = METRICS_DIR / "learning_rate_experiments.csv"
+DROPOUT_EXPERIMENTS_PATH = METRICS_DIR / "dropout_experiments.csv"
 
 RANDOM_STATE = 42
 TRAIN_SIZE = 0.60
