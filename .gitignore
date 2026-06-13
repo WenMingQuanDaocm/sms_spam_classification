@@ -17,6 +17,9 @@ env/
 .DS_Store
 Thumbs.db
 
+# Local paper drafting notes
+paper_notes/
+
 # Raw and processed datasets
 data/raw/*
 !data/raw/.gitkeep
