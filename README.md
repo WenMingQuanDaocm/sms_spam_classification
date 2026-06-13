@@ -136,3 +136,30 @@ models/logistic_regression/logistic_regression.joblib
 ```
 
 该阶段不会读取或评价测试集。
+
+## 第五阶段：MLP 基础训练
+
+在第三阶段完成后，运行：
+
+```powershell
+python scripts/train_mlp.py
+```
+
+该脚本只使用训练集和验证集：
+
+- 加载训练集拟合好的 TF-IDF 向量器。
+- 将训练集和验证集 TF-IDF 特征转换为 `float32` 张量。
+- 训练默认 MLP：`5000 -> 128 -> 64 -> 2`。
+- 使用 AdamW、CrossEntropyLoss 和 Early Stopping。
+- 按验证集 Macro-F1 保存最佳 checkpoint。
+
+输出文件包括：
+
+```text
+models/mlp/best_model.pt
+results/metrics/mlp_training_history.csv
+results/metrics/mlp_validation_metrics.json
+figures/training/mlp_training_curves.png
+```
+
+该阶段不会读取或评价测试集。
