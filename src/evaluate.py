@@ -115,3 +115,77 @@ def plot_confusion_matrix(
     fig.savefig(output, dpi=150)
     plt.close(fig)
     return output
+
+
+def plot_model_comparison(
+    comparison_frame: pd.DataFrame,
+    output_path: str | Path,
+    title: str = "Test Set Model Performance Comparison",
+) -> Path:
+    """Plot required test-set metrics for all compared models."""
+    metric_columns = [
+        "accuracy",
+        "macro_f1",
+        "spam_precision",
+        "spam_recall",
+        "spam_f1",
+    ]
+    required_columns = ["model_name", *metric_columns]
+    missing_columns = [
+        column for column in required_columns if column not in comparison_frame.columns
+    ]
+    if missing_columns:
+        raise ValueError(
+            "Model comparison data is missing required columns: "
+            + ", ".join(missing_columns)
+        )
+
+    model_name_map = {
+        "majority_baseline": "Majority\nBaseline",
+        "logistic_regression": "Logistic\nRegression",
+        "mlp": "MLP",
+    }
+    metric_label_map = {
+        "accuracy": "Accuracy",
+        "macro_f1": "Macro-F1",
+        "spam_precision": "Spam Precision",
+        "spam_recall": "Spam Recall",
+        "spam_f1": "Spam F1",
+    }
+
+    frame = comparison_frame.copy()
+    model_labels = [
+        model_name_map.get(str(model_name), str(model_name).replace("_", "\n"))
+        for model_name in frame["model_name"]
+    ]
+
+    x_positions = np.arange(len(frame))
+    bar_width = 0.14
+    colors = ["#4C78A8", "#F58518", "#54A24B", "#E45756", "#72B7B2"]
+
+    output = Path(output_path)
+    output.parent.mkdir(parents=True, exist_ok=True)
+
+    fig, ax = plt.subplots(figsize=(9, 5))
+    for metric_index, metric_column in enumerate(metric_columns):
+        offsets = (metric_index - (len(metric_columns) - 1) / 2) * bar_width
+        values = frame[metric_column].astype(float).to_numpy()
+        bars = ax.bar(
+            x_positions + offsets,
+            values,
+            bar_width,
+            label=metric_label_map[metric_column],
+            color=colors[metric_index],
+        )
+        ax.bar_label(bars, fmt="%.3f", padding=2, fontsize=7, rotation=90)
+
+    ax.set_title(title)
+    ax.set_ylabel("Score")
+    ax.set_xticks(x_positions, model_labels)
+    ax.set_ylim(0, 1.15)
+    ax.grid(axis="y", linestyle="--", alpha=0.35)
+    ax.legend(ncol=3, fontsize=8, loc="upper center", bbox_to_anchor=(0.5, -0.12))
+    fig.tight_layout()
+    fig.savefig(output, dpi=150)
+    plt.close(fig)
+    return output
