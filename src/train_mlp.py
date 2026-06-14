@@ -2,11 +2,17 @@
 
 from __future__ import annotations
 
+import os
 import time
 from pathlib import Path
 from typing import Any
 
 import joblib
+
+from src.config import MATPLOTLIB_CACHE_DIR
+
+os.environ.setdefault("MPLCONFIGDIR", str(MATPLOTLIB_CACHE_DIR))
+
 import matplotlib
 
 matplotlib.use("Agg")
@@ -32,9 +38,12 @@ from src.config import (
 )
 from src.evaluate import evaluate_predictions, save_metrics
 from src.models import TextMLP
+from src.plotting import configure_plot_style
 from src.train_logistic import load_tfidf_vectorizer
 from src.utils import get_training_device, set_random_seed
 
+
+configure_plot_style()
 
 def sparse_to_float_tensor(matrix: Any) -> torch.Tensor:
     """Convert a sparse TF-IDF matrix to a float32 tensor for the MLP."""
@@ -192,22 +201,26 @@ def plot_training_curves(
     history_frame = pd.DataFrame(history)
 
     fig, axes = plt.subplots(1, 2, figsize=(10, 4))
-    axes[0].plot(history_frame["epoch"], history_frame["train_loss"], label="train")
-    axes[0].plot(history_frame["epoch"], history_frame["validation_loss"], label="validation")
-    axes[0].set_title("MLP Loss")
-    axes[0].set_xlabel("Epoch")
-    axes[0].set_ylabel("Loss")
+    axes[0].plot(history_frame["epoch"], history_frame["train_loss"], label="训练集")
+    axes[0].plot(
+        history_frame["epoch"],
+        history_frame["validation_loss"],
+        label="验证集",
+    )
+    axes[0].set_title("MLP训练与验证损失")
+    axes[0].set_xlabel("训练轮次（Epoch）")
+    axes[0].set_ylabel("损失值（Loss）")
     axes[0].legend()
 
-    axes[1].plot(history_frame["epoch"], history_frame["train_accuracy"], label="train")
+    axes[1].plot(history_frame["epoch"], history_frame["train_accuracy"], label="训练集")
     axes[1].plot(
         history_frame["epoch"],
         history_frame["validation_accuracy"],
-        label="validation",
+        label="验证集",
     )
-    axes[1].set_title("MLP Accuracy")
-    axes[1].set_xlabel("Epoch")
-    axes[1].set_ylabel("Accuracy")
+    axes[1].set_title("MLP训练与验证准确率")
+    axes[1].set_xlabel("训练轮次（Epoch）")
+    axes[1].set_ylabel("准确率（Accuracy）")
     axes[1].legend()
 
     fig.tight_layout()

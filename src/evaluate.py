@@ -3,8 +3,13 @@
 from __future__ import annotations
 
 import json
+import os
 from pathlib import Path
 from typing import Any
+
+from src.config import LABEL_TO_TARGET, MATPLOTLIB_CACHE_DIR, TARGET_TO_LABEL
+
+os.environ.setdefault("MPLCONFIGDIR", str(MATPLOTLIB_CACHE_DIR))
 
 import matplotlib
 
@@ -19,7 +24,10 @@ from sklearn.metrics import (
     precision_recall_fscore_support,
 )
 
-from src.config import LABEL_TO_TARGET, TARGET_TO_LABEL
+from src.plotting import configure_plot_style, display_class_label, display_model_label
+
+
+configure_plot_style()
 
 
 def evaluate_predictions(
@@ -87,15 +95,16 @@ def plot_confusion_matrix(
     output = Path(output_path)
     output.parent.mkdir(parents=True, exist_ok=True)
     labels = metrics["confusion_matrix"]["labels"]
-    matrix = np.asarray(metrics["confusion_matrix"]["matrix"])
+    matrix = np.asarray(metrics["confusion_matrix"]["matrix"]).T
+    display_labels = [display_class_label(label) for label in labels]
 
     fig, ax = plt.subplots(figsize=(5, 4))
     image = ax.imshow(matrix, cmap="Blues")
     ax.set_title(title)
-    ax.set_xlabel("Predicted label")
-    ax.set_ylabel("True label")
-    ax.set_xticks(np.arange(len(labels)), labels=labels)
-    ax.set_yticks(np.arange(len(labels)), labels=labels)
+    ax.set_xlabel("真实类别")
+    ax.set_ylabel("预测类别")
+    ax.set_xticks(np.arange(len(labels)), labels=display_labels)
+    ax.set_yticks(np.arange(len(labels)), labels=display_labels)
 
     threshold = matrix.max() / 2 if matrix.max() else 0
     for row_index in range(matrix.shape[0]):
@@ -120,7 +129,7 @@ def plot_confusion_matrix(
 def plot_model_comparison(
     comparison_frame: pd.DataFrame,
     output_path: str | Path,
-    title: str = "Test Set Model Performance Comparison",
+    title: str = "测试集模型综合性能对比",
 ) -> Path:
     """Plot required test-set metrics for all compared models."""
     metric_columns = [
@@ -140,11 +149,6 @@ def plot_model_comparison(
             + ", ".join(missing_columns)
         )
 
-    model_name_map = {
-        "majority_baseline": "Majority\nBaseline",
-        "logistic_regression": "Logistic\nRegression",
-        "mlp": "MLP",
-    }
     metric_label_map = {
         "accuracy": "Accuracy",
         "macro_f1": "Macro-F1",
@@ -155,8 +159,7 @@ def plot_model_comparison(
 
     frame = comparison_frame.copy()
     model_labels = [
-        model_name_map.get(str(model_name), str(model_name).replace("_", "\n"))
-        for model_name in frame["model_name"]
+        display_model_label(model_name) for model_name in frame["model_name"]
     ]
 
     x_positions = np.arange(len(frame))
@@ -166,7 +169,7 @@ def plot_model_comparison(
     output = Path(output_path)
     output.parent.mkdir(parents=True, exist_ok=True)
 
-    fig, ax = plt.subplots(figsize=(9, 5))
+    fig, ax = plt.subplots(figsize=(9, 5.5))
     for metric_index, metric_column in enumerate(metric_columns):
         offsets = (metric_index - (len(metric_columns) - 1) / 2) * bar_width
         values = frame[metric_column].astype(float).to_numpy()
@@ -180,11 +183,12 @@ def plot_model_comparison(
         ax.bar_label(bars, fmt="%.3f", padding=2, fontsize=7, rotation=90)
 
     ax.set_title(title)
-    ax.set_ylabel("Score")
+    ax.set_xlabel("模型", labelpad=12)
+    ax.set_ylabel("分数")
     ax.set_xticks(x_positions, model_labels)
     ax.set_ylim(0, 1.15)
     ax.grid(axis="y", linestyle="--", alpha=0.35)
-    ax.legend(ncol=3, fontsize=8, loc="upper center", bbox_to_anchor=(0.5, -0.12))
+    ax.legend(ncol=3, fontsize=8, loc="upper center", bbox_to_anchor=(0.5, -0.20))
     fig.tight_layout()
     fig.savefig(output, dpi=150)
     plt.close(fig)

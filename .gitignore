@@ -20,6 +20,9 @@ Thumbs.db
 # Local paper drafting notes
 paper_notes/
 
+# Local Matplotlib cache
+.matplotlib-cache/
+
 # Raw and processed datasets
 data/raw/*
 !data/raw/.gitkeep

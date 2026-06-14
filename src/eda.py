@@ -3,8 +3,20 @@
 from __future__ import annotations
 
 import json
+import os
 from pathlib import Path
 from typing import Any
+
+from src.config import (
+    EDA_FIGURES_DIR,
+    LABEL_COLUMN,
+    MATPLOTLIB_CACHE_DIR,
+    MESSAGE_COLUMN,
+    METRICS_DIR,
+    VALID_LABELS,
+)
+
+os.environ.setdefault("MPLCONFIGDIR", str(MATPLOTLIB_CACHE_DIR))
 
 import matplotlib
 
@@ -12,9 +24,11 @@ matplotlib.use("Agg")
 import matplotlib.pyplot as plt
 import pandas as pd
 
-from src.config import EDA_FIGURES_DIR, LABEL_COLUMN, MESSAGE_COLUMN, METRICS_DIR, VALID_LABELS
+from src.plotting import configure_plot_style, display_class_label
 from src.preprocess import build_quality_report
 
+
+configure_plot_style()
 
 TEXT_STAT_COLUMNS = (
     "char_count",
@@ -99,10 +113,12 @@ def plot_class_distribution(data: pd.DataFrame, output_path: str | Path) -> Path
 
     counts = data[LABEL_COLUMN].value_counts().reindex(VALID_LABELS, fill_value=0)
     fig, ax = plt.subplots(figsize=(6, 4))
-    ax.bar(counts.index, counts.values, color=["#4C78A8", "#F58518"])
-    ax.set_title("Class Distribution")
-    ax.set_xlabel("Label")
-    ax.set_ylabel("Message Count")
+    x_labels = [display_class_label(label) for label in counts.index]
+    ax.bar(x_labels, counts.values, color=["#4C78A8", "#F58518"])
+    ax.set_title("类别分布")
+    ax.set_xlabel("类别")
+    ax.set_ylabel("样本数量")
+    ax.set_ylim(0, max(counts.values) * 1.12 if len(counts.values) else 1)
     for index, value in enumerate(counts.values):
         ax.text(index, value, str(int(value)), ha="center", va="bottom")
     fig.tight_layout()
@@ -115,6 +131,7 @@ def plot_distribution_by_label(
     data: pd.DataFrame,
     column: str,
     title: str,
+    x_label: str,
     output_path: str | Path,
 ) -> Path:
     """Plot a histogram for an EDA statistic grouped by label."""
@@ -124,10 +141,10 @@ def plot_distribution_by_label(
     fig, ax = plt.subplots(figsize=(7, 4))
     for label in VALID_LABELS:
         values = data.loc[data[LABEL_COLUMN] == label, column]
-        ax.hist(values, bins=30, alpha=0.55, label=label)
+        ax.hist(values, bins=30, alpha=0.55, label=display_class_label(label))
     ax.set_title(title)
-    ax.set_xlabel(column)
-    ax.set_ylabel("Message Count")
+    ax.set_xlabel(x_label)
+    ax.set_ylabel("频数")
     ax.legend()
     fig.tight_layout()
     fig.savefig(output, dpi=150)
@@ -146,13 +163,20 @@ def plot_digit_and_exclamation_distributions(
     fig, axes = plt.subplots(1, 2, figsize=(10, 4))
     for label in VALID_LABELS:
         label_data = data[data[LABEL_COLUMN] == label]
-        axes[0].hist(label_data["digit_count"], bins=20, alpha=0.55, label=label)
-        axes[1].hist(label_data["exclamation_count"], bins=20, alpha=0.55, label=label)
-    axes[0].set_title("Digit Count")
-    axes[0].set_xlabel("digit_count")
-    axes[0].set_ylabel("Message Count")
-    axes[1].set_title("Exclamation Count")
-    axes[1].set_xlabel("exclamation_count")
+        display_label = display_class_label(label)
+        axes[0].hist(label_data["digit_count"], bins=20, alpha=0.55, label=display_label)
+        axes[1].hist(
+            label_data["exclamation_count"],
+            bins=20,
+            alpha=0.55,
+            label=display_label,
+        )
+    axes[0].set_title("数字数量分布")
+    axes[0].set_xlabel("数字数量")
+    axes[0].set_ylabel("频数")
+    axes[1].set_title("感叹号数量分布")
+    axes[1].set_xlabel("感叹号数量")
+    axes[1].set_ylabel("频数")
     for axis in axes:
         axis.legend()
     fig.tight_layout()
@@ -179,13 +203,15 @@ def generate_eda_outputs(
         "char_count_distribution": plot_distribution_by_label(
             enriched,
             "char_count",
-            "Message Length Distribution",
+            "短信字符长度分布",
+            "短信字符数",
             figures / "message_char_count_distribution.png",
         ),
         "word_count_distribution": plot_distribution_by_label(
             enriched,
             "word_count",
-            "Word Count Distribution",
+            "短信词数分布",
+            "短信词数",
             figures / "message_word_count_distribution.png",
         ),
         "digit_exclamation_distribution": plot_digit_and_exclamation_distributions(

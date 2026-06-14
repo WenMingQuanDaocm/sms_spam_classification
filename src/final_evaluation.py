@@ -220,7 +220,7 @@ def evaluate_logistic_on_test(
     plot_confusion_matrix(
         metrics,
         CONFUSION_MATRIX_DIR / "logistic_confusion_matrix.png",
-        "Logistic Regression Test Confusion Matrix",
+        "逻辑回归测试集混淆矩阵",
     )
     return metrics
 
@@ -252,7 +252,7 @@ def evaluate_mlp_on_test(
     plot_confusion_matrix(
         metrics,
         CONFUSION_MATRIX_DIR / "mlp_confusion_matrix.png",
-        "MLP Test Confusion Matrix",
+        "MLP测试集混淆矩阵",
     )
     return metrics, prediction_frame
 

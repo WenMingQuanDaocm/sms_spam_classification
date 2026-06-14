@@ -4,8 +4,13 @@ from __future__ import annotations
 
 import json
 import math
+import os
 from pathlib import Path
 from typing import Any
+
+from src.config import MATPLOTLIB_CACHE_DIR
+
+os.environ.setdefault("MPLCONFIGDIR", str(MATPLOTLIB_CACHE_DIR))
 
 import matplotlib
 
@@ -21,8 +26,11 @@ from src.config import (
     MLP_CONFIG,
     MLP_MODEL_DIR,
 )
+from src.plotting import configure_plot_style
 from src.train_mlp import train_mlp_validation
 
+
+configure_plot_style()
 
 LEARNING_RATE_VALUES = (0.01, 0.001, 0.0001)
 DROPOUT_VALUES = (0.0, 0.3, 0.5)
@@ -165,8 +173,12 @@ def plot_sensitivity(
     if log_x:
         ax.set_xscale("log")
     ax.set_title(title)
-    ax.set_xlabel(x_column)
-    ax.set_ylabel("Validation Score")
+    x_label = {"learning_rate": "学习率", "dropout": "Dropout比例"}.get(
+        x_column,
+        x_column,
+    )
+    ax.set_xlabel(x_label)
+    ax.set_ylabel("验证集分数")
     ax.set_ylim(0.0, 1.02)
     ax.legend()
     fig.tight_layout()
@@ -230,14 +242,14 @@ def run_hyperparameter_analysis() -> dict[str, Any]:
     learning_rate_plot = plot_sensitivity(
         learning_rate_results,
         x_column="learning_rate",
-        title="Learning Rate Sensitivity",
+        title="学习率敏感性分析",
         output_path=HYPERPARAMETER_FIGURES_DIR / "learning_rate_sensitivity.png",
         log_x=True,
     )
     dropout_plot = plot_sensitivity(
         dropout_results,
         x_column="dropout",
-        title="Dropout Sensitivity",
+        title="Dropout敏感性分析",
         output_path=HYPERPARAMETER_FIGURES_DIR / "dropout_sensitivity.png",
     )
 
