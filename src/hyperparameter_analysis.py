@@ -8,6 +8,8 @@ import os
 from pathlib import Path
 from typing import Any
 
+import numpy as np
+
 from src.config import MATPLOTLIB_CACHE_DIR
 
 os.environ.setdefault("MPLCONFIGDIR", str(MATPLOTLIB_CACHE_DIR))
@@ -158,9 +160,9 @@ def save_experiment_table(rows: list[dict[str, Any]], path: str | Path) -> Path:
 def plot_sensitivity(
     results: pd.DataFrame,
     x_column: str,
-    title: str,
     output_path: str | Path,
     log_x: bool = False,
+    y_limits: tuple[float, float] = (0.96, 0.99),
 ) -> Path:
     """Plot validation Macro-F1 and Accuracy for one hyperparameter."""
     output = Path(output_path)
@@ -168,18 +170,66 @@ def plot_sensitivity(
     ordered = results.sort_values(x_column)
 
     fig, ax = plt.subplots(figsize=(7, 4))
-    ax.plot(ordered[x_column], ordered["validation_macro_f1"], marker="o", label="Macro-F1")
-    ax.plot(ordered[x_column], ordered["validation_accuracy"], marker="o", label="Accuracy")
+    macro_f1_values = ordered["validation_macro_f1"].astype(float)
+    accuracy_values = ordered["validation_accuracy"].astype(float)
+    macro_line = ax.plot(
+        ordered[x_column],
+        macro_f1_values,
+        marker="o",
+        label="Macro-F1",
+    )
+    accuracy_line = ax.plot(
+        ordered[x_column],
+        accuracy_values,
+        marker="o",
+        label="Accuracy",
+    )
+
+    best_macro_f1 = float(macro_f1_values.max())
+    best_rows = ordered[np.isclose(macro_f1_values, best_macro_f1)]
+    ax.scatter(
+        best_rows[x_column],
+        best_rows["validation_macro_f1"],
+        marker="*",
+        s=180,
+        color="#D62728",
+        edgecolor="black",
+        linewidth=0.5,
+        zorder=5,
+        label="最优Macro-F1",
+    )
+
+    for x_value, y_value in zip(ordered[x_column], macro_f1_values):
+        ax.annotate(
+            f"{y_value:.4f}",
+            (x_value, y_value),
+            textcoords="offset points",
+            xytext=(0, 7),
+            ha="center",
+            fontsize=8,
+            color=macro_line[0].get_color(),
+        )
+    for x_value, y_value in zip(ordered[x_column], accuracy_values):
+        ax.annotate(
+            f"{y_value:.4f}",
+            (x_value, y_value),
+            textcoords="offset points",
+            xytext=(0, -13),
+            ha="center",
+            fontsize=8,
+            color=accuracy_line[0].get_color(),
+        )
+
     if log_x:
         ax.set_xscale("log")
-    ax.set_title(title)
     x_label = {"learning_rate": "学习率", "dropout": "Dropout比例"}.get(
         x_column,
         x_column,
     )
     ax.set_xlabel(x_label)
     ax.set_ylabel("验证集分数")
-    ax.set_ylim(0.0, 1.02)
+    ax.set_ylim(*y_limits)
+    ax.grid(axis="y", linestyle="--", alpha=0.35)
     ax.legend()
     fig.tight_layout()
     fig.savefig(output, dpi=150)
@@ -242,14 +292,12 @@ def run_hyperparameter_analysis() -> dict[str, Any]:
     learning_rate_plot = plot_sensitivity(
         learning_rate_results,
         x_column="learning_rate",
-        title="学习率敏感性分析",
         output_path=HYPERPARAMETER_FIGURES_DIR / "learning_rate_sensitivity.png",
         log_x=True,
     )
     dropout_plot = plot_sensitivity(
         dropout_results,
         x_column="dropout",
-        title="Dropout敏感性分析",
         output_path=HYPERPARAMETER_FIGURES_DIR / "dropout_sensitivity.png",
     )
 

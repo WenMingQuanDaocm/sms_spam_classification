@@ -45,6 +45,7 @@ from src.utils import get_training_device, set_random_seed
 
 configure_plot_style()
 
+
 def sparse_to_float_tensor(matrix: Any) -> torch.Tensor:
     """Convert a sparse TF-IDF matrix to a float32 tensor for the MLP."""
     return torch.from_numpy(matrix.toarray()).float()
@@ -194,6 +195,8 @@ def save_training_history(history: list[dict[str, Any]], path: str | Path) -> Pa
 def plot_training_curves(
     history: list[dict[str, Any]],
     output_path: str | Path = TRAINING_FIGURES_DIR / "mlp_training_curves.png",
+    best_epoch: int | None = None,
+    show_titles: bool = True,
 ) -> Path:
     """Plot MLP train/validation loss and accuracy curves."""
     output = Path(output_path)
@@ -207,10 +210,10 @@ def plot_training_curves(
         history_frame["validation_loss"],
         label="验证集",
     )
-    axes[0].set_title("MLP训练与验证损失")
+    if show_titles:
+        axes[0].set_title("MLP训练与验证损失")
     axes[0].set_xlabel("训练轮次（Epoch）")
     axes[0].set_ylabel("损失值（Loss）")
-    axes[0].legend()
 
     axes[1].plot(history_frame["epoch"], history_frame["train_accuracy"], label="训练集")
     axes[1].plot(
@@ -218,10 +221,23 @@ def plot_training_curves(
         history_frame["validation_accuracy"],
         label="验证集",
     )
-    axes[1].set_title("MLP训练与验证准确率")
+    if show_titles:
+        axes[1].set_title("MLP训练与验证准确率")
     axes[1].set_xlabel("训练轮次（Epoch）")
     axes[1].set_ylabel("准确率（Accuracy）")
-    axes[1].legend()
+
+    if best_epoch is not None:
+        for axis in axes:
+            axis.axvline(
+                best_epoch,
+                color="#D62728",
+                linestyle="--",
+                linewidth=1.2,
+                label=f"Best Epoch={best_epoch}",
+            )
+
+    for axis in axes:
+        axis.legend()
 
     fig.tight_layout()
     fig.savefig(output, dpi=150)
@@ -322,7 +338,17 @@ def train_mlp_validation(
 
     training_time_seconds = time.perf_counter() - start_time
     history_output = save_training_history(history, history_path)
-    curves_output = plot_training_curves(history, training_curves_path)
+    training_curves_output = Path(training_curves_path)
+    is_main_training_curve = (
+        training_curves_output.parent == TRAINING_FIGURES_DIR
+        and training_curves_output.name == "mlp_training_curves.png"
+    )
+    curves_output = plot_training_curves(
+        history,
+        training_curves_path,
+        best_epoch=best_epoch if is_main_training_curve else None,
+        show_titles=is_main_training_curve,
+    )
 
     metrics = evaluate_predictions(
         validation_data[TARGET_COLUMN],

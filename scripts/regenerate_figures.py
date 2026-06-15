@@ -14,7 +14,6 @@ if str(PROJECT_ROOT) not in sys.path:
     sys.path.insert(0, str(PROJECT_ROOT))
 
 from src.config import (
-    BASELINE_TEST_METRICS_PATH,
     CONFUSION_MATRIX_DIR,
     DROPOUT_EXPERIMENTS_PATH,
     EDA_FIGURES_DIR,
@@ -60,6 +59,8 @@ def regenerate_training_figures() -> dict[str, str]:
     output_path = plot_training_curves(
         _load_history_records(MLP_TRAINING_HISTORY_PATH),
         TRAINING_FIGURES_DIR / "mlp_training_curves.png",
+        best_epoch=5,
+        show_titles=True,
     )
     return {"mlp_training_curves": str(output_path)}
 
@@ -74,7 +75,6 @@ def regenerate_hyperparameter_figures() -> dict[str, str]:
         plot_sensitivity(
             learning_rate_results,
             x_column="learning_rate",
-            title="学习率敏感性分析",
             output_path=HYPERPARAMETER_FIGURES_DIR / "learning_rate_sensitivity.png",
             log_x=True,
         )
@@ -83,7 +83,6 @@ def regenerate_hyperparameter_figures() -> dict[str, str]:
         plot_sensitivity(
             dropout_results,
             x_column="dropout",
-            title="Dropout敏感性分析",
             output_path=HYPERPARAMETER_FIGURES_DIR / "dropout_sensitivity.png",
         )
     )
@@ -94,6 +93,7 @@ def regenerate_hyperparameter_figures() -> dict[str, str]:
         output_path = plot_training_curves(
             _load_history_records(history_path),
             HYPERPARAMETER_FIGURES_DIR / f"{run_name}_curves.png",
+            show_titles=False,
         )
         outputs[f"{run_name}_curves"] = str(output_path)
     return outputs
@@ -105,12 +105,10 @@ def regenerate_confusion_matrix_figures() -> dict[str, str]:
         "logistic_confusion_matrix": plot_confusion_matrix(
             _load_json(LOGISTIC_TEST_METRICS_PATH),
             CONFUSION_MATRIX_DIR / "logistic_confusion_matrix.png",
-            "逻辑回归测试集混淆矩阵",
         ),
         "mlp_confusion_matrix": plot_confusion_matrix(
             _load_json(MLP_TEST_METRICS_PATH),
             CONFUSION_MATRIX_DIR / "mlp_confusion_matrix.png",
-            "MLP测试集混淆矩阵",
         ),
     }
     return {name: str(path) for name, path in outputs.items()}

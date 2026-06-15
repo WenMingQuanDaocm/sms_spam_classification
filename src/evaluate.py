@@ -89,20 +89,21 @@ def save_metrics(metrics: dict[str, Any], path: str | Path) -> Path:
 def plot_confusion_matrix(
     metrics: dict[str, Any],
     output_path: str | Path,
-    title: str,
+    title: str | None = None,
 ) -> Path:
     """Plot a confusion matrix from a metrics dictionary."""
     output = Path(output_path)
     output.parent.mkdir(parents=True, exist_ok=True)
     labels = metrics["confusion_matrix"]["labels"]
-    matrix = np.asarray(metrics["confusion_matrix"]["matrix"]).T
+    matrix = np.asarray(metrics["confusion_matrix"]["matrix"])
     display_labels = [display_class_label(label) for label in labels]
 
     fig, ax = plt.subplots(figsize=(5, 4))
     image = ax.imshow(matrix, cmap="Blues")
-    ax.set_title(title)
-    ax.set_xlabel("真实类别")
-    ax.set_ylabel("预测类别")
+    if title:
+        ax.set_title(title)
+    ax.set_xlabel("预测类别")
+    ax.set_ylabel("真实类别")
     ax.set_xticks(np.arange(len(labels)), labels=display_labels)
     ax.set_yticks(np.arange(len(labels)), labels=display_labels)
 
@@ -129,7 +130,7 @@ def plot_confusion_matrix(
 def plot_model_comparison(
     comparison_frame: pd.DataFrame,
     output_path: str | Path,
-    title: str = "测试集模型综合性能对比",
+    title: str | None = None,
 ) -> Path:
     """Plot required test-set metrics for all compared models."""
     metric_columns = [
@@ -182,7 +183,8 @@ def plot_model_comparison(
         )
         ax.bar_label(bars, fmt="%.3f", padding=2, fontsize=7, rotation=90)
 
-    ax.set_title(title)
+    if title:
+        ax.set_title(title)
     ax.set_xlabel("模型", labelpad=12)
     ax.set_ylabel("分数")
     ax.set_xticks(x_positions, model_labels)

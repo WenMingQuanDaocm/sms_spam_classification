@@ -115,12 +115,19 @@ def plot_class_distribution(data: pd.DataFrame, output_path: str | Path) -> Path
     fig, ax = plt.subplots(figsize=(6, 4))
     x_labels = [display_class_label(label) for label in counts.index]
     ax.bar(x_labels, counts.values, color=["#4C78A8", "#F58518"])
-    ax.set_title("类别分布")
     ax.set_xlabel("类别")
     ax.set_ylabel("样本数量")
     ax.set_ylim(0, max(counts.values) * 1.12 if len(counts.values) else 1)
+    total_count = int(counts.sum())
     for index, value in enumerate(counts.values):
-        ax.text(index, value, str(int(value)), ha="center", va="bottom")
+        proportion = value / total_count if total_count else 0.0
+        ax.text(
+            index,
+            value,
+            f"{int(value)}（{proportion:.2%}）",
+            ha="center",
+            va="bottom",
+        )
     fig.tight_layout()
     fig.savefig(output, dpi=150)
     plt.close(fig)
@@ -130,9 +137,11 @@ def plot_class_distribution(data: pd.DataFrame, output_path: str | Path) -> Path
 def plot_distribution_by_label(
     data: pd.DataFrame,
     column: str,
-    title: str,
     x_label: str,
     output_path: str | Path,
+    density: bool = False,
+    x_limits: tuple[float, float] | None = None,
+    y_label: str | None = None,
 ) -> Path:
     """Plot a histogram for an EDA statistic grouped by label."""
     output = Path(output_path)
@@ -141,10 +150,18 @@ def plot_distribution_by_label(
     fig, ax = plt.subplots(figsize=(7, 4))
     for label in VALID_LABELS:
         values = data.loc[data[LABEL_COLUMN] == label, column]
-        ax.hist(values, bins=30, alpha=0.55, label=display_class_label(label))
-    ax.set_title(title)
+        ax.hist(
+            values,
+            bins=30,
+            density=density,
+            range=x_limits,
+            alpha=0.55,
+            label=display_class_label(label),
+        )
+    if x_limits is not None:
+        ax.set_xlim(*x_limits)
     ax.set_xlabel(x_label)
-    ax.set_ylabel("频数")
+    ax.set_ylabel(y_label or ("密度" if density else "频数"))
     ax.legend()
     fig.tight_layout()
     fig.savefig(output, dpi=150)
@@ -171,10 +188,8 @@ def plot_digit_and_exclamation_distributions(
             alpha=0.55,
             label=display_label,
         )
-    axes[0].set_title("数字数量分布")
     axes[0].set_xlabel("数字数量")
     axes[0].set_ylabel("频数")
-    axes[1].set_title("感叹号数量分布")
     axes[1].set_xlabel("感叹号数量")
     axes[1].set_ylabel("频数")
     for axis in axes:
@@ -203,14 +218,15 @@ def generate_eda_outputs(
         "char_count_distribution": plot_distribution_by_label(
             enriched,
             "char_count",
-            "短信字符长度分布",
             "短信字符数",
             figures / "message_char_count_distribution.png",
+            density=True,
+            x_limits=(0, 400),
+            y_label="密度",
         ),
         "word_count_distribution": plot_distribution_by_label(
             enriched,
             "word_count",
-            "短信词数分布",
             "短信词数",
             figures / "message_word_count_distribution.png",
         ),
