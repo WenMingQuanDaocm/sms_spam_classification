@@ -1,4 +1,4 @@
-"""Controlled MLP hyperparameter sensitivity experiments."""
+"""受控 MLP 超参数敏感性实验。"""
 
 from __future__ import annotations
 
@@ -39,39 +39,40 @@ DROPOUT_VALUES = (0.0, 0.3, 0.5)
 
 
 def format_float_for_path(value: float) -> str:
-    """Return a filesystem-friendly representation of a float."""
+    """返回适合文件路径使用的浮点数表示。"""
     return str(value).replace(".", "_")
 
 
 def build_experiment_config(**overrides: Any) -> dict[str, Any]:
-    """Return the default MLP config with controlled overrides applied."""
+    """返回应用受控覆盖项后的默认 MLP 配置。"""
     config = dict(MLP_CONFIG)
     config.update(overrides)
     return config
 
 
 def load_history(path: str | Path) -> pd.DataFrame:
-    """Load one MLP training history CSV."""
+    """加载单次 MLP 训练历史 CSV。"""
     return pd.read_csv(path, encoding="utf-8")
 
 
 def has_overfitting_signal(history: pd.DataFrame) -> bool:
-    """Return whether final train/validation curves show a clear gap."""
+    """判断最终训练曲线和验证曲线是否显示明显过拟合迹象。"""
     final_row = history.iloc[-1]
     best_row = history.loc[history["validation_macro_f1"].idxmax()]
+    # 这个判断只用于描述训练现象，不参与最终模型选择。
     accuracy_gap = final_row["train_accuracy"] - final_row["validation_accuracy"]
     validation_loss_increased = final_row["validation_loss"] > best_row["validation_loss"]
     return bool(accuracy_gap > 0.03 and validation_loss_increased)
 
 
 def has_underfitting_signal(history: pd.DataFrame) -> bool:
-    """Return whether the run appears not to have fit the training data well."""
+    """判断本次运行是否存在训练数据拟合不足迹象。"""
     best_row = history.loc[history["validation_macro_f1"].idxmax()]
     return bool(best_row["train_accuracy"] < 0.95 or best_row["validation_macro_f1"] < 0.85)
 
 
 def training_was_stable(history: pd.DataFrame) -> bool:
-    """Return whether losses are finite and no severe divergence is visible."""
+    """判断损失是否有限且没有明显发散。"""
     loss_columns = ["train_loss", "validation_loss"]
     finite_losses = history[loss_columns].map(math.isfinite).all().all()
     first_validation_loss = float(history.iloc[0]["validation_loss"])
@@ -86,7 +87,7 @@ def summarize_experiment(
     variable_name: str,
     variable_value: float,
 ) -> dict[str, Any]:
-    """Build one CSV row for a controlled experiment."""
+    """为一次受控实验构建一行 CSV 摘要。"""
     history = load_history(metrics["history_path"])
     best_row = history.loc[history["validation_macro_f1"].idxmax()]
     final_row = history.iloc[-1]
@@ -129,11 +130,12 @@ def run_single_experiment(
     variable_value: float,
     config: dict[str, Any],
 ) -> dict[str, Any]:
-    """Run one MLP experiment with isolated output files."""
+    """运行一次 MLP 实验，并写入独立输出文件。"""
     value_name = format_float_for_path(variable_value)
     run_name = f"{experiment_group}_{variable_name}_{value_name}"
     metrics_path = METRICS_DIR / "hyperparameter_runs" / f"{run_name}.json"
 
+    # 每组实验写入独立文件，避免敏感性实验覆盖默认模型结果。
     metrics = train_mlp_validation(
         checkpoint_path=MLP_MODEL_DIR / "hyperparameters" / f"{run_name}.pt",
         history_path=METRICS_DIR / "hyperparameter_runs" / f"{run_name}_history.csv",
@@ -150,7 +152,7 @@ def run_single_experiment(
 
 
 def save_experiment_table(rows: list[dict[str, Any]], path: str | Path) -> Path:
-    """Save an experiment summary table as UTF-8 CSV."""
+    """将实验摘要表保存为 UTF-8 编码的 CSV 文件。"""
     output_path = Path(path)
     output_path.parent.mkdir(parents=True, exist_ok=True)
     pd.DataFrame(rows).to_csv(output_path, index=False, encoding="utf-8")
@@ -164,7 +166,7 @@ def plot_sensitivity(
     log_x: bool = False,
     y_limits: tuple[float, float] = (0.96, 0.99),
 ) -> Path:
-    """Plot validation Macro-F1 and Accuracy for one hyperparameter."""
+    """绘制某个超参数下的验证集 Macro-F1 和 Accuracy。"""
     output = Path(output_path)
     output.parent.mkdir(parents=True, exist_ok=True)
     ordered = results.sort_values(x_column)
@@ -186,6 +188,7 @@ def plot_sensitivity(
     )
 
     best_macro_f1 = float(macro_f1_values.max())
+    # 并列最优都标出，例如 dropout=0.0 和 0.3 可能得到相同 Macro-F1。
     best_rows = ordered[np.isclose(macro_f1_values, best_macro_f1)]
     ax.scatter(
         best_rows[x_column],
@@ -228,6 +231,7 @@ def plot_sensitivity(
     )
     ax.set_xlabel(x_label)
     ax.set_ylabel("验证集分数")
+    # 缩窄纵轴只是为了论文图中看清细微差异，不改变原始指标。
     ax.set_ylim(*y_limits)
     ax.grid(axis="y", linestyle="--", alpha=0.35)
     ax.legend()
@@ -238,7 +242,7 @@ def plot_sensitivity(
 
 
 def run_learning_rate_experiments() -> tuple[pd.DataFrame, Path]:
-    """Run controlled learning-rate experiments with dropout fixed at 0.3."""
+    """在 Dropout 固定为 0.3 时运行受控学习率实验。"""
     rows = []
     for learning_rate in LEARNING_RATE_VALUES:
         config = build_experiment_config(learning_rate=learning_rate, dropout=0.3)
@@ -255,7 +259,7 @@ def run_learning_rate_experiments() -> tuple[pd.DataFrame, Path]:
 
 
 def select_best_learning_rate(results: pd.DataFrame) -> float:
-    """Select the learning rate by validation Macro-F1, then accuracy."""
+    """先按验证集 Macro-F1、再按 Accuracy 选择学习率。"""
     ranked = results.sort_values(
         ["validation_macro_f1", "validation_accuracy"],
         ascending=[False, False],
@@ -264,7 +268,7 @@ def select_best_learning_rate(results: pd.DataFrame) -> float:
 
 
 def run_dropout_experiments(best_learning_rate: float) -> tuple[pd.DataFrame, Path]:
-    """Run controlled dropout experiments using the selected learning rate."""
+    """使用选定学习率运行受控 Dropout 实验。"""
     rows = []
     for dropout in DROPOUT_VALUES:
         config = build_experiment_config(
@@ -284,7 +288,8 @@ def run_dropout_experiments(best_learning_rate: float) -> tuple[pd.DataFrame, Pa
 
 
 def run_hyperparameter_analysis() -> dict[str, Any]:
-    """Run the full phase-six controlled hyperparameter analysis."""
+    """运行第六阶段完整的受控超参数分析。"""
+    # 先选学习率，再固定该学习率做 Dropout 实验，保证一次只改变一个变量。
     learning_rate_results, learning_rate_path = run_learning_rate_experiments()
     best_learning_rate = select_best_learning_rate(learning_rate_results)
     dropout_results, dropout_path = run_dropout_experiments(best_learning_rate)

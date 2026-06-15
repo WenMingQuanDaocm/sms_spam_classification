@@ -1,4 +1,4 @@
-"""Evaluation utilities for SMS spam classification models."""
+"""短信垃圾分类模型的评估工具。"""
 
 from __future__ import annotations
 
@@ -36,7 +36,7 @@ def evaluate_predictions(
     model_name: str,
     split_name: str,
 ) -> dict[str, Any]:
-    """Compute project-required classification metrics."""
+    """计算项目要求的分类评估指标。"""
     y_true_array = np.asarray(y_true)
     y_pred_array = np.asarray(y_pred)
     label_ids = [LABEL_TO_TARGET["ham"], LABEL_TO_TARGET["spam"]]
@@ -45,6 +45,7 @@ def evaluate_predictions(
         y_true_array,
         y_pred_array,
         labels=label_ids,
+        # 多数类基线不会预测 spam，因此这里允许零除并返回 0。
         zero_division=0,
     )
     matrix = confusion_matrix(y_true_array, y_pred_array, labels=label_ids)
@@ -76,7 +77,7 @@ def evaluate_predictions(
 
 
 def save_metrics(metrics: dict[str, Any], path: str | Path) -> Path:
-    """Save metrics as UTF-8 JSON."""
+    """将评估指标保存为 UTF-8 编码的 JSON 文件。"""
     output_path = Path(path)
     output_path.parent.mkdir(parents=True, exist_ok=True)
     output_path.write_text(
@@ -91,10 +92,11 @@ def plot_confusion_matrix(
     output_path: str | Path,
     title: str | None = None,
 ) -> Path:
-    """Plot a confusion matrix from a metrics dictionary."""
+    """根据指标字典绘制混淆矩阵图。"""
     output = Path(output_path)
     output.parent.mkdir(parents=True, exist_ok=True)
     labels = metrics["confusion_matrix"]["labels"]
+    # 保存的矩阵遵循 sklearn 约定：行是真实类别，列是预测类别。
     matrix = np.asarray(metrics["confusion_matrix"]["matrix"])
     display_labels = [display_class_label(label) for label in labels]
 
@@ -132,7 +134,7 @@ def plot_model_comparison(
     output_path: str | Path,
     title: str | None = None,
 ) -> Path:
-    """Plot required test-set metrics for all compared models."""
+    """绘制所有对比模型的测试集核心指标图。"""
     metric_columns = [
         "accuracy",
         "macro_f1",
@@ -172,6 +174,7 @@ def plot_model_comparison(
 
     fig, ax = plt.subplots(figsize=(9, 5.5))
     for metric_index, metric_column in enumerate(metric_columns):
+        # 把论文要求的测试集指标放在同一张分组柱状图里，便于横向比较模型。
         offsets = (metric_index - (len(metric_columns) - 1) / 2) * bar_width
         values = frame[metric_column].astype(float).to_numpy()
         bars = ax.bar(

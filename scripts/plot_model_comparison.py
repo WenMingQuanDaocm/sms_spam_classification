@@ -1,4 +1,4 @@
-"""Generate the final model performance comparison figure."""
+"""生成最终模型综合性能对比图。"""
 
 from __future__ import annotations
 
@@ -11,6 +11,7 @@ import pandas as pd
 
 PROJECT_ROOT = Path(__file__).resolve().parents[1]
 if str(PROJECT_ROOT) not in sys.path:
+    # 绘图脚本复用 src.evaluate 中的统一画图函数。
     sys.path.insert(0, str(PROJECT_ROOT))
 
 from src.config import MODEL_COMPARISON_FIGURE_PATH, MODEL_COMPARISON_PATH
@@ -18,9 +19,10 @@ from src.evaluate import plot_model_comparison
 
 
 def main() -> None:
-    """Read final test metrics and save the comparison plot."""
+    """读取最终测试指标并保存模型对比图。"""
     comparison_path = Path(MODEL_COMPARISON_PATH)
     if not comparison_path.exists():
+        # 没有最终评估结果时不能凭空画对比图。
         raise FileNotFoundError(
             f"Model comparison metrics not found: {comparison_path}. "
             "Run scripts/run_final_evaluation.py first."

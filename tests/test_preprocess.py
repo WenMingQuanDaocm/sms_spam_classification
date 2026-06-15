@@ -1,4 +1,4 @@
-"""Unit tests for preprocessing, splitting, and TF-IDF preparation."""
+"""预处理、数据切分和 TF-IDF 准备的单元测试。"""
 
 from __future__ import annotations
 
@@ -19,7 +19,7 @@ from src.preprocess import (
 
 
 def build_sample_raw_data() -> pd.DataFrame:
-    """Build a balanced synthetic dataset for deterministic unit tests."""
+    """构建类别均衡的合成数据，用于确定性单元测试。"""
     rows: list[dict[str, str]] = []
     for index in range(10):
         rows.append(
@@ -38,9 +38,10 @@ def build_sample_raw_data() -> pd.DataFrame:
 
 
 class PreprocessTests(unittest.TestCase):
-    """Test the core phase-two and phase-three preprocessing behavior."""
+    """测试第二阶段和第三阶段的核心预处理行为。"""
 
     def test_clean_sms_data_removes_exact_duplicates_and_adds_target(self) -> None:
+        # 清洗阶段应删除精确重复样本，并生成数值 target 列。
         raw_data = pd.concat(
             [build_sample_raw_data(), build_sample_raw_data().iloc[[0]]],
             ignore_index=True,
@@ -53,6 +54,7 @@ class PreprocessTests(unittest.TestCase):
         self.assertEqual(set(cleaned[TARGET_COLUMN]), {0, 1})
 
     def test_label_conflicts_are_detected(self) -> None:
+        # 同一短信文本不能同时属于 ham 和 spam。
         data = pd.DataFrame(
             [
                 {LABEL_COLUMN: "ham", MESSAGE_COLUMN: "same text"},
@@ -65,6 +67,7 @@ class PreprocessTests(unittest.TestCase):
         self.assertEqual(conflicts[MESSAGE_COLUMN].nunique(), 1)
 
     def test_split_is_stratified_and_has_no_overlap(self) -> None:
+        # 切分后要保持类别覆盖，并且不同 split 之间不能有短信文本重叠。
         cleaned = clean_sms_data(build_sample_raw_data())
 
         splits = split_train_validation_test(cleaned)
@@ -79,6 +82,7 @@ class PreprocessTests(unittest.TestCase):
             self.assertEqual(set(split_data[LABEL_COLUMN]), {"ham", "spam"})
 
     def test_tfidf_fits_train_only_and_transforms_all_splits(self) -> None:
+        # TF-IDF 只能在训练集拟合，再用于转换验证集和测试集。
         cleaned = clean_sms_data(build_sample_raw_data())
         splits = split_train_validation_test(cleaned)
 

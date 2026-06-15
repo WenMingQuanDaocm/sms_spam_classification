@@ -1,4 +1,4 @@
-"""Train and validate the majority-class baseline."""
+"""训练并验证多数类基线模型。"""
 
 from __future__ import annotations
 
@@ -23,14 +23,15 @@ def load_train_validation_splits(
     train_path: str | Path = TRAIN_DATA_PATH,
     validation_path: str | Path = VALIDATION_DATA_PATH,
 ) -> tuple[pd.DataFrame, pd.DataFrame]:
-    """Load the fixed train and validation splits."""
+    """加载固定训练集和验证集切分。"""
     train_data = pd.read_csv(train_path, encoding="utf-8")
     validation_data = pd.read_csv(validation_path, encoding="utf-8")
     return train_data, validation_data
 
 
 def train_majority_baseline(train_data: pd.DataFrame) -> DummyClassifier:
-    """Train a majority-class baseline on the training split only."""
+    """只在训练集上训练多数类基线模型。"""
+    # 多数类基线不看短信内容，用来衡量类别不均衡带来的“虚高准确率”。
     model = DummyClassifier(strategy="most_frequent")
     model.fit(train_data[[MESSAGE_COLUMN]], train_data[TARGET_COLUMN])
     return model
@@ -41,7 +42,7 @@ def run_baseline_validation(
     validation_path: str | Path = VALIDATION_DATA_PATH,
     metrics_path: str | Path = BASELINE_METRICS_PATH,
 ) -> dict[str, Any]:
-    """Train the baseline and evaluate it on the validation split."""
+    """训练基线模型并在验证集上评估。"""
     train_data, validation_data = load_train_validation_splits(
         train_path,
         validation_path,

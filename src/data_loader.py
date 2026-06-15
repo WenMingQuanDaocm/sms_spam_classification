@@ -1,4 +1,4 @@
-"""Data loading utilities for the raw SMS Spam Collection file."""
+"""原始 SMS Spam Collection 数据文件加载工具。"""
 
 from __future__ import annotations
 
@@ -10,7 +10,7 @@ from src.config import LABEL_COLUMN, MESSAGE_COLUMN, RAW_DATA_PATH
 
 
 def validate_raw_data_path(path: str | Path = RAW_DATA_PATH) -> Path:
-    """Validate that the raw SMS dataset path exists and is a non-empty file."""
+    """检查原始短信数据路径是否存在、是否为文件且非空。"""
     raw_path = Path(path)
     if not raw_path.exists():
         raise FileNotFoundError(
@@ -28,10 +28,9 @@ def load_raw_sms_data(
     path: str | Path = RAW_DATA_PATH,
     encoding: str = "utf-8",
 ) -> pd.DataFrame:
-    """Load the raw label-tab-message file into a DataFrame.
+    """将“标签-制表符-短信正文”格式的原始文件加载为 DataFrame。
 
-    The parser splits each line on the first tab only, preserving tabs that may
-    appear inside the message text.
+    解析时只按每行第一个制表符切分，保留短信正文中可能出现的其他制表符。
     """
     raw_path = validate_raw_data_path(path)
     records: list[dict[str, str]] = []
@@ -43,6 +42,7 @@ def load_raw_sms_data(
             if "\t" not in line:
                 malformed_lines.append(line_number)
                 continue
+            # 只按第一个制表符切分，保留短信正文中可能出现的其他制表符。
             label, message = line.split("\t", 1)
             records.append({LABEL_COLUMN: label, MESSAGE_COLUMN: message})
 
@@ -65,7 +65,7 @@ def validate_required_columns(
     data: pd.DataFrame,
     required_columns: tuple[str, ...] = (LABEL_COLUMN, MESSAGE_COLUMN),
 ) -> None:
-    """Validate that a DataFrame contains the columns required for this project."""
+    """检查 DataFrame 是否包含项目所需列。"""
     missing_columns = [column for column in required_columns if column not in data.columns]
     if missing_columns:
         raise ValueError(f"Missing required column(s): {missing_columns}")

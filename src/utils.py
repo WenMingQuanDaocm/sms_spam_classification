@@ -1,4 +1,4 @@
-"""Shared utility functions for reproducible experiments."""
+"""用于复现实验的通用工具函数。"""
 
 from __future__ import annotations
 
@@ -12,7 +12,8 @@ from src.config import RANDOM_STATE
 
 
 def set_random_seed(seed: int = RANDOM_STATE) -> None:
-    """Set Python, NumPy, and PyTorch random seeds."""
+    """设置 Python、NumPy 和 PyTorch 的随机种子。"""
+    # 同时固定 Python、NumPy 和 PyTorch，减少不同运行之间的随机波动。
     random.seed(seed)
     np.random.seed(seed)
     torch.manual_seed(seed)
@@ -24,5 +25,5 @@ def set_random_seed(seed: int = RANDOM_STATE) -> None:
 
 
 def get_training_device() -> torch.device:
-    """Return the training device used by this project."""
+    """返回本项目使用的训练设备。"""
     return torch.device("cuda" if torch.cuda.is_available() else "cpu")

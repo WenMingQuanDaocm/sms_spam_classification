@@ -1,4 +1,4 @@
-"""Regenerate all project figures from saved data and experiment outputs."""
+"""根据已保存的数据和实验输出重新生成全部项目图像。"""
 
 from __future__ import annotations
 
@@ -37,17 +37,17 @@ from src.train_mlp import plot_training_curves
 
 
 def _load_json(path: str | Path) -> dict:
-    """Load a UTF-8 JSON file."""
+    """加载 UTF-8 编码的 JSON 文件。"""
     return json.loads(Path(path).read_text(encoding="utf-8"))
 
 
 def _load_history_records(path: str | Path) -> list[dict]:
-    """Load a training-history CSV as plotting records."""
+    """将训练历史 CSV 加载为绘图记录。"""
     return pd.read_csv(path, encoding="utf-8").to_dict(orient="records")
 
 
 def regenerate_eda_figures() -> dict[str, str]:
-    """Regenerate EDA figures from the raw dataset."""
+    """根据原始数据重新生成 EDA 图像。"""
     raw_data = load_raw_sms_data(RAW_DATA_PATH)
     cleaned_data = clean_sms_data(raw_data)
     outputs = generate_eda_outputs(cleaned_data, figures_dir=EDA_FIGURES_DIR)
@@ -55,7 +55,7 @@ def regenerate_eda_figures() -> dict[str, str]:
 
 
 def regenerate_training_figures() -> dict[str, str]:
-    """Regenerate the default MLP training-curve figure."""
+    """重新生成默认 MLP 训练曲线图。"""
     output_path = plot_training_curves(
         _load_history_records(MLP_TRAINING_HISTORY_PATH),
         TRAINING_FIGURES_DIR / "mlp_training_curves.png",
@@ -66,7 +66,7 @@ def regenerate_training_figures() -> dict[str, str]:
 
 
 def regenerate_hyperparameter_figures() -> dict[str, str]:
-    """Regenerate hyperparameter sensitivity plots and per-run curves."""
+    """重新生成超参数敏感性图和各实验运行曲线图。"""
     outputs: dict[str, str] = {}
     learning_rate_results = pd.read_csv(LEARNING_RATE_EXPERIMENTS_PATH, encoding="utf-8")
     dropout_results = pd.read_csv(DROPOUT_EXPERIMENTS_PATH, encoding="utf-8")
@@ -100,7 +100,7 @@ def regenerate_hyperparameter_figures() -> dict[str, str]:
 
 
 def regenerate_confusion_matrix_figures() -> dict[str, str]:
-    """Regenerate final test-set confusion matrices from saved metrics."""
+    """根据已保存指标重新生成最终测试集混淆矩阵图。"""
     outputs = {
         "logistic_confusion_matrix": plot_confusion_matrix(
             _load_json(LOGISTIC_TEST_METRICS_PATH),
@@ -115,14 +115,15 @@ def regenerate_confusion_matrix_figures() -> dict[str, str]:
 
 
 def regenerate_model_comparison_figure() -> dict[str, str]:
-    """Regenerate the final model-comparison figure."""
+    """重新生成最终模型对比图。"""
     comparison = pd.read_csv(MODEL_COMPARISON_PATH, encoding="utf-8")
     output_path = plot_model_comparison(comparison, MODEL_COMPARISON_FIGURE_PATH)
     return {"model_comparison": str(output_path)}
 
 
 def main() -> None:
-    """Regenerate all project figures without retraining models."""
+    """在不重新训练模型的情况下重新生成全部项目图像。"""
+    # 复用已经保存的指标和训练历史，确保改图不改变实验结果。
     outputs = {
         "eda": regenerate_eda_figures(),
         "training": regenerate_training_figures(),

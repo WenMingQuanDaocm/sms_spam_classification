@@ -1,4 +1,4 @@
-"""Model definitions for SMS spam classification."""
+"""短信垃圾分类模型定义。"""
 
 from __future__ import annotations
 
@@ -7,7 +7,7 @@ from torch import nn
 
 
 class TextMLP(nn.Module):
-    """A basic MLP for TF-IDF SMS classification."""
+    """用于 TF-IDF 短信分类的基础 MLP 模型。"""
 
     def __init__(
         self,
@@ -24,6 +24,7 @@ class TextMLP(nn.Module):
         if not 0.0 <= dropout < 1.0:
             raise ValueError("dropout must be in [0.0, 1.0).")
 
+        # 根据 hidden_layers 动态搭建全连接层，便于后续扩展结构实验。
         layers: list[nn.Module] = []
         previous_dim = input_dim
         for hidden_dim in hidden_layers:
@@ -41,5 +42,5 @@ class TextMLP(nn.Module):
         self.network = nn.Sequential(*layers)
 
     def forward(self, features: torch.Tensor) -> torch.Tensor:
-        """Return unnormalized class logits."""
+        """返回未归一化的类别 logits。"""
         return self.network(features)

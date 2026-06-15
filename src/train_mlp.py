@@ -1,4 +1,4 @@
-"""Train and validate the PyTorch MLP on TF-IDF features."""
+"""在 TF-IDF 特征上训练并验证 PyTorch MLP。"""
 
 from __future__ import annotations
 
@@ -47,7 +47,8 @@ configure_plot_style()
 
 
 def sparse_to_float_tensor(matrix: Any) -> torch.Tensor:
-    """Convert a sparse TF-IDF matrix to a float32 tensor for the MLP."""
+    """将稀疏 TF-IDF 矩阵转换为 MLP 可用的 float32 张量。"""
+    # 当前数据集和词表规模较小，转成稠密张量可以简化 PyTorch MLP 输入。
     return torch.from_numpy(matrix.toarray()).float()
 
 
@@ -58,10 +59,11 @@ def build_dataloader(
     shuffle: bool,
     seed: int = RANDOM_STATE,
 ) -> DataLoader:
-    """Build a deterministic DataLoader from dense features and labels."""
+    """根据稠密特征和标签构建可复现的 DataLoader。"""
     labels = torch.tensor(targets.to_numpy(), dtype=torch.long)
     dataset = TensorDataset(features, labels)
     generator = torch.Generator()
+    # PyTorch 数据加载器洗牌使用独立生成器，因此需要单独设种子保证复现。
     generator.manual_seed(seed)
     return DataLoader(
         dataset,
@@ -76,7 +78,7 @@ def load_mlp_data(
     validation_path: str | Path = VALIDATION_DATA_PATH,
     vectorizer_path: str | Path = TFIDF_VECTORIZER_PATH,
 ) -> tuple[pd.DataFrame, pd.DataFrame, Any, torch.Tensor, torch.Tensor]:
-    """Load train/validation splits and transform them with the fitted vectorizer."""
+    """加载训练集和验证集，并用已拟合的向量器完成转换。"""
     train_data = pd.read_csv(train_path, encoding="utf-8")
     validation_data = pd.read_csv(validation_path, encoding="utf-8")
     vectorizer = load_tfidf_vectorizer(vectorizer_path)
@@ -95,7 +97,7 @@ def train_one_epoch(
     optimizer: torch.optim.Optimizer,
     device: torch.device,
 ) -> dict[str, float]:
-    """Run one training epoch and return loss/accuracy."""
+    """运行一个训练轮次并返回损失和准确率。"""
     model.train()
     total_loss = 0.0
     total_correct = 0
@@ -128,7 +130,7 @@ def evaluate_mlp_epoch(
     criterion: nn.Module,
     device: torch.device,
 ) -> dict[str, float | list[int]]:
-    """Evaluate the MLP on one split."""
+    """在一个数据切分上评估 MLP。"""
     model.eval()
     total_loss = 0.0
     total_correct = 0
@@ -151,6 +153,7 @@ def evaluate_mlp_epoch(
             predictions.extend(predicted.cpu().tolist())
             targets_all.extend(targets.cpu().tolist())
 
+    # 每轮记录 Macro-F1，因为项目规定它是主要模型选择指标。
     return {
         "loss": total_loss / total_samples,
         "accuracy": total_correct / total_samples,
@@ -168,7 +171,7 @@ def save_checkpoint(
     validation_macro_f1: float,
     config: dict[str, Any],
 ) -> Path:
-    """Save the best MLP checkpoint."""
+    """保存最佳 MLP checkpoint。"""
     output_path = Path(path)
     output_path.parent.mkdir(parents=True, exist_ok=True)
     torch.save(
@@ -185,7 +188,7 @@ def save_checkpoint(
 
 
 def save_training_history(history: list[dict[str, Any]], path: str | Path) -> Path:
-    """Save per-epoch MLP training history."""
+    """保存每个训练轮次的 MLP 训练历史。"""
     output_path = Path(path)
     output_path.parent.mkdir(parents=True, exist_ok=True)
     pd.DataFrame(history).to_csv(output_path, index=False, encoding="utf-8")
@@ -198,7 +201,7 @@ def plot_training_curves(
     best_epoch: int | None = None,
     show_titles: bool = True,
 ) -> Path:
-    """Plot MLP train/validation loss and accuracy curves."""
+    """绘制 MLP 训练集和验证集的损失、准确率曲线。"""
     output = Path(output_path)
     output.parent.mkdir(parents=True, exist_ok=True)
     history_frame = pd.DataFrame(history)
@@ -227,6 +230,7 @@ def plot_training_curves(
     axes[1].set_ylabel("准确率（Accuracy）")
 
     if best_epoch is not None:
+        # 论文主训练曲线直接标出被选中的 checkpoint 轮次。
         for axis in axes:
             axis.axvline(
                 best_epoch,
@@ -255,7 +259,7 @@ def train_mlp_validation(
     training_curves_path: str | Path = TRAINING_FIGURES_DIR / "mlp_training_curves.png",
     config: dict[str, Any] | None = None,
 ) -> dict[str, Any]:
-    """Train the default MLP and evaluate the best checkpoint on validation."""
+    """训练默认 MLP，并在验证集上评估最佳 checkpoint。"""
     run_config = dict(MLP_CONFIG if config is None else config)
     set_random_seed(RANDOM_STATE)
     device = get_training_device()
@@ -302,12 +306,14 @@ def train_mlp_validation(
         train_metrics = train_one_epoch(model, train_loader, criterion, optimizer, device)
         validation_metrics = evaluate_mlp_epoch(model, validation_loader, criterion, device)
         validation_macro_f1 = float(validation_metrics["macro_f1"])
+        # 用验证集 Macro-F1 选择 checkpoint；这里绝不能使用测试集。
         is_best = validation_macro_f1 > best_validation_macro_f1
 
         if is_best:
             best_validation_macro_f1 = validation_macro_f1
             best_epoch = epoch
             epochs_without_improvement = 0
+            # 保存最佳 checkpoint 对应的预测，后面汇总验证集指标时使用。
             best_predictions = list(validation_metrics["predictions"])
             save_checkpoint(
                 model,
@@ -334,6 +340,7 @@ def train_mlp_validation(
         )
 
         if epochs_without_improvement >= int(run_config["early_stopping_patience"]):
+            # 早停用于限制过拟合，并减少重复实验的训练成本。
             break
 
     training_time_seconds = time.perf_counter() - start_time

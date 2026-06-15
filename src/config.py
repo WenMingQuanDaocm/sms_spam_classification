@@ -1,15 +1,16 @@
-"""Central project configuration.
+"""项目集中配置。
 
-This module stores paths and default experiment constants only. Training,
-data loading, and evaluation logic are added in later stages.
+本模块只保存路径和默认实验常量；训练、数据加载和评估逻辑放在其他模块中。
 """
 
 from pathlib import Path
 from typing import Any
 
 
+# 统一从项目根目录派生路径，避免脚本从不同工作目录运行时找错文件。
 PROJECT_ROOT = Path(__file__).resolve().parents[1]
 
+# 数据、图像、模型和结果路径集中配置，便于复现实验和检查输出。
 DATA_DIR = PROJECT_ROOT / "data"
 RAW_DATA_DIR = DATA_DIR / "raw"
 PROCESSED_DATA_DIR = DATA_DIR / "processed"
@@ -59,6 +60,7 @@ TRAIN_SIZE = 0.60
 VALIDATION_SIZE = 0.20
 TEST_SIZE = 0.20
 
+# 标签映射固定为 ham=0、spam=1，后续指标和混淆矩阵都依赖这个约定。
 LABEL_COLUMN = "label"
 MESSAGE_COLUMN = "message"
 TARGET_COLUMN = "target"
@@ -67,6 +69,7 @@ LABEL_TO_TARGET = {"ham": 0, "spam": 1}
 TARGET_TO_LABEL = {0: "ham", 1: "spam"}
 
 TFIDF_CONFIG: dict[str, Any] = {
+    # 使用 unigram+bigram 和子线性 TF，兼顾短信短文本中的词和短语信号。
     "lowercase": True,
     "ngram_range": (1, 2),
     "min_df": 2,
@@ -82,6 +85,7 @@ LOGISTIC_REGRESSION_CONFIG: dict[str, Any] = {
 }
 
 MLP_CONFIG: dict[str, Any] = {
+    # MLP 默认结构与项目方案保持一致，调参实验只改变受控变量。
     "hidden_layers": (128, 64),
     "dropout": 0.3,
     "learning_rate": 0.001,

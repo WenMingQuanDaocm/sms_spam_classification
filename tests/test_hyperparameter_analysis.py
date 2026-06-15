@@ -1,4 +1,4 @@
-"""Unit tests for hyperparameter experiment helpers."""
+"""超参数实验辅助函数的单元测试。"""
 
 from __future__ import annotations
 
@@ -16,9 +16,10 @@ from src.hyperparameter_analysis import (
 
 
 class HyperparameterAnalysisTests(unittest.TestCase):
-    """Test deterministic helper behavior for phase-six summaries."""
+    """测试第六阶段摘要辅助函数的确定性行为。"""
 
     def test_build_experiment_config_applies_overrides(self) -> None:
+        # 覆盖项只改变指定超参数，其余默认配置应保持不变。
         config = build_experiment_config(learning_rate=0.01, dropout=0.5)
 
         self.assertEqual(config["learning_rate"], 0.01)
@@ -26,6 +27,7 @@ class HyperparameterAnalysisTests(unittest.TestCase):
         self.assertEqual(config["hidden_layers"], (128, 64))
 
     def test_select_best_learning_rate_uses_macro_f1_then_accuracy(self) -> None:
+        # 学习率选择先看 Macro-F1，Macro-F1 相同时再看 Accuracy。
         results = pd.DataFrame(
             [
                 {"learning_rate": 0.01, "validation_macro_f1": 0.9, "validation_accuracy": 0.95},
@@ -37,6 +39,7 @@ class HyperparameterAnalysisTests(unittest.TestCase):
         self.assertEqual(select_best_learning_rate(results), 0.001)
 
     def test_training_signal_helpers(self) -> None:
+        # 这组历史记录模拟训练集继续变好、验证集变差的过拟合迹象。
         history = pd.DataFrame(
             [
                 {

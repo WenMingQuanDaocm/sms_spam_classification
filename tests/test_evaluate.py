@@ -1,4 +1,4 @@
-"""Unit tests for classification metric calculation."""
+"""分类指标计算的单元测试。"""
 
 from __future__ import annotations
 
@@ -8,9 +8,10 @@ from src.evaluate import evaluate_predictions
 
 
 class EvaluateTests(unittest.TestCase):
-    """Test required metric fields and confusion matrix behavior."""
+    """测试必要指标字段和混淆矩阵行为。"""
 
     def test_evaluate_predictions_reports_spam_metrics(self) -> None:
+        # 构造一个简单二分类例子，检查 spam 指标和混淆矩阵字段是否稳定。
         metrics = evaluate_predictions(
             y_true=[0, 0, 1, 1],
             y_pred=[0, 1, 1, 0],

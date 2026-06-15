@@ -1,4 +1,4 @@
-"""Unit tests for final evaluation helpers."""
+"""最终评估辅助函数的单元测试。"""
 
 from __future__ import annotations
 
@@ -11,9 +11,10 @@ from src.final_evaluation import build_prediction_frame
 
 
 class FinalEvaluationTests(unittest.TestCase):
-    """Test final prediction frame construction."""
+    """测试最终预测结果表的构建。"""
 
     def test_build_prediction_frame_adds_labels_and_probabilities(self) -> None:
+        # 预测结果表需要同时保留原始标签、预测标签和 spam 概率。
         test_data = pd.DataFrame(
             [
                 {MESSAGE_COLUMN: "hello", LABEL_COLUMN: "ham", TARGET_COLUMN: 0},

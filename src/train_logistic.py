@@ -1,4 +1,4 @@
-"""Train and validate logistic regression on TF-IDF features."""
+"""基于 TF-IDF 特征训练并验证逻辑回归模型。"""
 
 from __future__ import annotations
 
@@ -26,7 +26,7 @@ from src.train_baseline import load_train_validation_splits
 
 
 def load_tfidf_vectorizer(path: str | Path = TFIDF_VECTORIZER_PATH) -> Any:
-    """Load the fitted training-only TF-IDF vectorizer."""
+    """加载只在训练集上拟合过的 TF-IDF 向量器。"""
     vectorizer_path = Path(path)
     if not vectorizer_path.exists():
         raise FileNotFoundError(
@@ -41,7 +41,7 @@ def train_logistic_regression(
     train_targets: pd.Series,
     config: dict[str, Any] | None = None,
 ) -> LogisticRegression:
-    """Train logistic regression using the provided sparse TF-IDF features."""
+    """使用给定的稀疏 TF-IDF 特征训练逻辑回归模型。"""
     model_config = LOGISTIC_REGRESSION_CONFIG if config is None else config
     model = LogisticRegression(**model_config)
     model.fit(train_features, train_targets)
@@ -52,7 +52,7 @@ def save_logistic_model(
     model: LogisticRegression,
     path: str | Path = LOGISTIC_MODEL_PATH,
 ) -> Path:
-    """Save the fitted logistic regression model."""
+    """保存已训练的逻辑回归模型。"""
     output_path = Path(path)
     output_path.parent.mkdir(parents=True, exist_ok=True)
     joblib.dump(model, output_path)
@@ -65,10 +65,11 @@ def save_logistic_feature_weights(
     path: str | Path = LOGISTIC_FEATURE_WEIGHTS_PATH,
     top_k: int = 20,
 ) -> Path:
-    """Save the highest-weight spam and ham features for interpretation."""
+    """保存权重最高的 spam 和 ham 特征，用于模型解释。"""
     feature_names = vectorizer.get_feature_names_out()
     weights = model.coef_[0]
 
+    # 正权重更支持 spam，负权重更支持 ham，可用于解释模型学到的关键词。
     spam_indices = weights.argsort()[::-1][:top_k]
     ham_indices = weights.argsort()[:top_k]
     rows: list[dict[str, Any]] = []
@@ -106,13 +107,14 @@ def run_logistic_validation(
     metrics_path: str | Path = LOGISTIC_METRICS_PATH,
     feature_weights_path: str | Path = LOGISTIC_FEATURE_WEIGHTS_PATH,
 ) -> dict[str, Any]:
-    """Train logistic regression and evaluate it on the validation split."""
+    """训练逻辑回归模型并在验证集上评估。"""
     train_data, validation_data = load_train_validation_splits(
         train_path,
         validation_path,
     )
     vectorizer = load_tfidf_vectorizer(vectorizer_path)
 
+    # 向量器已经在预处理阶段拟合，这里只转换固定切分后的数据。
     train_features = vectorizer.transform(train_data[MESSAGE_COLUMN])
     validation_features = vectorizer.transform(validation_data[MESSAGE_COLUMN])
 

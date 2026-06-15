@@ -1,4 +1,4 @@
-"""Data quality checks and conservative preprocessing for SMS messages."""
+"""短信数据质量检查和保守预处理工具。"""
 
 from __future__ import annotations
 
@@ -34,7 +34,7 @@ from src.data_loader import validate_required_columns
 
 @dataclass(frozen=True)
 class DataQualityReport:
-    """Summary of raw data quality checks."""
+    """原始数据质量检查摘要。"""
 
     total_rows: int
     missing_value_counts: dict[str, int]
@@ -47,25 +47,25 @@ class DataQualityReport:
     class_counts: dict[str, int]
 
     def to_dict(self) -> dict[str, Any]:
-        """Return a JSON-serializable report dictionary."""
+        """返回可保存为 JSON 的报告字典。"""
         return asdict(self)
 
 
 @dataclass(frozen=True)
 class SplitReport:
-    """Summary of the fixed train/validation/test split."""
+    """固定训练集、验证集、测试集切分摘要。"""
 
     split_sizes: dict[str, int]
     class_distribution: dict[str, dict[str, dict[str, float | int]]]
     overlap_counts: dict[str, int]
 
     def to_dict(self) -> dict[str, Any]:
-        """Return a JSON-serializable split report dictionary."""
+        """返回可保存为 JSON 的切分报告字典。"""
         return asdict(self)
 
 
 def normalize_raw_columns(data: pd.DataFrame) -> pd.DataFrame:
-    """Trim labels and messages while preserving message content."""
+    """清理标签和短信两端空白，同时保留短信正文内容。"""
     validate_required_columns(data)
     normalized = data.copy()
     normalized[LABEL_COLUMN] = (
@@ -76,21 +76,21 @@ def normalize_raw_columns(data: pd.DataFrame) -> pd.DataFrame:
 
 
 def get_empty_message_mask(data: pd.DataFrame) -> pd.Series:
-    """Return a mask for rows with empty message text after trimming."""
+    """返回清理空白后短信正文为空的行掩码。"""
     validate_required_columns(data)
     messages = data[MESSAGE_COLUMN].astype("string")
     return messages.notna() & messages.str.strip().eq("")
 
 
 def get_invalid_label_mask(data: pd.DataFrame) -> pd.Series:
-    """Return a mask for rows with labels outside the allowed label set."""
+    """返回标签不属于允许集合的行掩码。"""
     validate_required_columns(data)
     labels = data[LABEL_COLUMN].astype("string")
     return labels.notna() & ~labels.isin(VALID_LABELS)
 
 
 def get_label_conflicts(data: pd.DataFrame) -> pd.DataFrame:
-    """Return rows whose message text appears with more than one label."""
+    """返回同一短信文本对应多个标签的冲突行。"""
     validate_required_columns(data)
     comparable = data.dropna(subset=[LABEL_COLUMN, MESSAGE_COLUMN])
     label_counts = comparable.groupby(MESSAGE_COLUMN)[LABEL_COLUMN].nunique()
@@ -105,7 +105,7 @@ def get_label_conflicts(data: pd.DataFrame) -> pd.DataFrame:
 
 
 def build_quality_report(data: pd.DataFrame) -> DataQualityReport:
-    """Build the required data quality report without modifying the input."""
+    """在不修改输入数据的前提下构建数据质量报告。"""
     normalized = normalize_raw_columns(data)
     missing_counts = {
         column: int(normalized[column].isna().sum())
@@ -140,16 +140,15 @@ def build_quality_report(data: pd.DataFrame) -> DataQualityReport:
 
 
 def clean_sms_data(data: pd.DataFrame) -> pd.DataFrame:
-    """Clean raw SMS data for later splitting.
+    """清洗原始短信数据，为后续切分做准备。
 
-    This function only performs approved preprocessing: trim whitespace, remove
-    empty messages, remove exact duplicates, validate labels, and add the
-    numeric target column. Label conflicts fail fast instead of being resolved
-    silently.
+    本函数只执行方案允许的预处理：去除首尾空白、删除空短信、删除精确重复样本、
+    校验标签并添加数值目标列。标签冲突会直接报错，不会静默修正。
     """
     normalized = normalize_raw_columns(data)
     report = build_quality_report(normalized)
 
+    # 缺失标签或短信会让后续指标含义不清，因此在切分前直接报错。
     missing_total = sum(report.missing_value_counts.values())
     if missing_total > 0:
         raise ValueError(f"Missing values found: {report.missing_value_counts}")
@@ -165,11 +164,13 @@ def clean_sms_data(data: pd.DataFrame) -> pd.DataFrame:
     non_empty = normalized.loc[~get_empty_message_mask(normalized)].copy()
     conflicts = get_label_conflicts(non_empty)
     if not conflicts.empty:
+        # 相同短信对应不同标签会破坏目标定义，不能静默修正。
         raise ValueError(
             "Label conflicts found for identical message text. "
             "Review conflicts before continuing."
         )
 
+    # 切分前删除精确重复样本，防止同一短信泄漏到不同数据集。
     cleaned = (
         non_empty.drop_duplicates(subset=[LABEL_COLUMN, MESSAGE_COLUMN], keep="first")
         .reset_index(drop=True)
@@ -180,7 +181,7 @@ def clean_sms_data(data: pd.DataFrame) -> pd.DataFrame:
 
 
 def save_cleaned_preview(data: pd.DataFrame, path: str | Path, rows: int = 20) -> Path:
-    """Save a small preview CSV for manual review, not a processed split."""
+    """保存少量清洗后样本供人工查看，不作为正式数据切分。"""
     output_path = Path(path)
     output_path.parent.mkdir(parents=True, exist_ok=True)
     data.head(rows).to_csv(output_path, index=False, encoding="utf-8")
@@ -188,7 +189,7 @@ def save_cleaned_preview(data: pd.DataFrame, path: str | Path, rows: int = 20) -
 
 
 def validate_split_input(data: pd.DataFrame) -> None:
-    """Validate cleaned data before train/validation/test splitting."""
+    """在训练集、验证集、测试集切分前校验清洗后数据。"""
     validate_required_columns(data, (LABEL_COLUMN, MESSAGE_COLUMN, TARGET_COLUMN))
     expected_total = TRAIN_SIZE + VALIDATION_SIZE + TEST_SIZE
     if abs(expected_total - 1.0) > 1e-9:
@@ -201,15 +202,17 @@ def validate_split_input(data: pd.DataFrame) -> None:
 
 
 def split_train_validation_test(data: pd.DataFrame) -> dict[str, pd.DataFrame]:
-    """Create fixed 60/20/20 stratified train, validation, and test splits."""
+    """创建固定 60/20/20 的分层训练集、验证集和测试集。"""
     validate_split_input(data)
 
+    # 先切出训练集，再把剩余 40% 切成验证集和测试集。
     train_data, temp_data = train_test_split(
         data,
         train_size=TRAIN_SIZE,
         stratify=data[TARGET_COLUMN],
         random_state=RANDOM_STATE,
     )
+    # 第二次切分面对的是剩余 40%，所以要换算比例才能得到最终 60/20/20。
     relative_test_size = TEST_SIZE / (VALIDATION_SIZE + TEST_SIZE)
     validation_data, test_data = train_test_split(
         temp_data,
@@ -231,7 +234,7 @@ def save_splits(
     validation_path: str | Path = VALIDATION_DATA_PATH,
     test_path: str | Path = TEST_DATA_PATH,
 ) -> dict[str, Path]:
-    """Save train, validation, and test splits as UTF-8 CSV files."""
+    """将训练集、验证集和测试集保存为 UTF-8 编码的 CSV 文件。"""
     output_paths = {
         "train": Path(train_path),
         "validation": Path(validation_path),
@@ -244,7 +247,7 @@ def save_splits(
 
 
 def get_class_distribution(data: pd.DataFrame) -> dict[str, dict[str, float | int]]:
-    """Return class counts and proportions for one split."""
+    """返回某个数据切分中的类别数量和比例。"""
     counts = data[LABEL_COLUMN].value_counts().reindex(VALID_LABELS, fill_value=0)
     total = len(data)
     return {
@@ -257,7 +260,7 @@ def get_class_distribution(data: pd.DataFrame) -> dict[str, dict[str, float | in
 
 
 def find_split_overlaps(splits: dict[str, pd.DataFrame]) -> dict[str, int]:
-    """Count message text overlaps between split pairs."""
+    """统计不同数据切分之间的短信文本重叠数量。"""
     message_sets = {
         split_name: set(split_data[MESSAGE_COLUMN].astype(str))
         for split_name, split_data in splits.items()
@@ -270,14 +273,14 @@ def find_split_overlaps(splits: dict[str, pd.DataFrame]) -> dict[str, int]:
 
 
 def validate_no_split_overlap(splits: dict[str, pd.DataFrame]) -> None:
-    """Fail if any message text appears in more than one split."""
+    """如果同一短信文本出现在多个切分中，则直接报错。"""
     overlap_counts = find_split_overlaps(splits)
     if any(count > 0 for count in overlap_counts.values()):
         raise ValueError(f"Split overlap detected: {overlap_counts}")
 
 
 def build_split_report(splits: dict[str, pd.DataFrame]) -> SplitReport:
-    """Build a report for split sizes, class balance, and overlaps."""
+    """构建切分大小、类别平衡和重叠情况报告。"""
     return SplitReport(
         split_sizes={name: int(len(split_data)) for name, split_data in splits.items()},
         class_distribution={
@@ -289,8 +292,9 @@ def build_split_report(splits: dict[str, pd.DataFrame]) -> SplitReport:
 
 
 def fit_tfidf_vectorizer(train_data: pd.DataFrame) -> TfidfVectorizer:
-    """Fit TF-IDF on the training split only."""
+    """只在训练集上拟合 TF-IDF 向量器。"""
     validate_required_columns(train_data, (MESSAGE_COLUMN,))
+    # 只在训练集拟合 TF-IDF，避免验证集和测试集的词表统计泄漏。
     vectorizer = TfidfVectorizer(**TFIDF_CONFIG)
     vectorizer.fit(train_data[MESSAGE_COLUMN])
     return vectorizer
@@ -300,7 +304,8 @@ def transform_splits(
     vectorizer: TfidfVectorizer,
     splits: dict[str, pd.DataFrame],
 ) -> dict[str, Any]:
-    """Transform train, validation, and test messages using a fitted vectorizer."""
+    """使用已拟合的向量器转换训练集、验证集和测试集短信。"""
+    # 验证集和测试集只使用冻结后的向量器 transform，不能重新 fit。
     return {
         split_name: vectorizer.transform(split_data[MESSAGE_COLUMN])
         for split_name, split_data in splits.items()
@@ -311,7 +316,7 @@ def save_tfidf_vectorizer(
     vectorizer: TfidfVectorizer,
     path: str | Path = TFIDF_VECTORIZER_PATH,
 ) -> Path:
-    """Save the fitted TF-IDF vectorizer."""
+    """保存已拟合的 TF-IDF 向量器。"""
     output_path = Path(path)
     output_path.parent.mkdir(parents=True, exist_ok=True)
     joblib.dump(vectorizer, output_path)
@@ -324,7 +329,7 @@ def build_preprocessing_summary(
     vectorizer: TfidfVectorizer,
     transformed_splits: dict[str, Any],
 ) -> dict[str, Any]:
-    """Build a reproducibility summary for phase-three preprocessing."""
+    """构建第三阶段预处理的复现性摘要。"""
     split_report = build_split_report(splits)
     feature_shapes = {
         split_name: [int(matrix.shape[0]), int(matrix.shape[1])]
@@ -347,7 +352,7 @@ def save_preprocessing_summary(
     summary: dict[str, Any],
     path: str | Path = PREPROCESSING_SUMMARY_PATH,
 ) -> Path:
-    """Save the phase-three preprocessing summary as UTF-8 JSON."""
+    """将第三阶段预处理摘要保存为 UTF-8 编码的 JSON 文件。"""
     output_path = Path(path)
     output_path.parent.mkdir(parents=True, exist_ok=True)
     output_path.write_text(

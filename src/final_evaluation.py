@@ -1,4 +1,4 @@
-"""Final test-set evaluation for selected SMS spam classifiers."""
+"""对选定短信分类模型进行最终测试集评估。"""
 
 from __future__ import annotations
 
@@ -40,17 +40,17 @@ from src.utils import get_training_device
 
 
 def load_test_frame(path: str | Path = TEST_DATA_PATH) -> pd.DataFrame:
-    """Load the fixed test split for final evaluation only."""
+    """加载仅用于最终评估的固定测试集。"""
     return pd.read_csv(path, encoding="utf-8")
 
 
 def load_train_frame(path: str | Path = TRAIN_DATA_PATH) -> pd.DataFrame:
-    """Load the fixed training split for fitting the majority baseline."""
+    """加载固定训练集，用于拟合多数类基线模型。"""
     return pd.read_csv(path, encoding="utf-8")
 
 
 def load_logistic_model(path: str | Path = LOGISTIC_MODEL_PATH) -> Any:
-    """Load the saved logistic regression model."""
+    """加载已保存的逻辑回归模型。"""
     model_path = Path(path)
     if not model_path.exists():
         raise FileNotFoundError(
@@ -61,7 +61,7 @@ def load_logistic_model(path: str | Path = LOGISTIC_MODEL_PATH) -> Any:
 
 
 def load_mlp_checkpoint(path: str | Path = MLP_CHECKPOINT_PATH) -> dict[str, Any]:
-    """Load the selected MLP checkpoint."""
+    """加载选定的 MLP checkpoint。"""
     checkpoint_path = Path(path)
     if not checkpoint_path.exists():
         raise FileNotFoundError(
@@ -72,7 +72,7 @@ def load_mlp_checkpoint(path: str | Path = MLP_CHECKPOINT_PATH) -> dict[str, Any
 
 
 def build_mlp_from_checkpoint(checkpoint: dict[str, Any]) -> TextMLP:
-    """Reconstruct the MLP model from a saved checkpoint."""
+    """根据保存的 checkpoint 重建 MLP 模型。"""
     config = checkpoint.get("config", MLP_CONFIG)
     model = TextMLP(
         input_dim=int(checkpoint["input_dim"]),
@@ -88,7 +88,7 @@ def predict_mlp_probabilities(
     model: TextMLP,
     test_features: Any,
 ) -> tuple[list[int], list[float]]:
-    """Return MLP predicted labels and spam probabilities."""
+    """返回 MLP 预测标签和 spam 概率。"""
     device = get_training_device()
     model = model.to(device)
     features = sparse_to_float_tensor(test_features).to(device)
@@ -105,7 +105,7 @@ def build_prediction_frame(
     predicted_targets: list[int],
     spam_probabilities: list[float],
 ) -> pd.DataFrame:
-    """Build a prediction CSV frame for test-set outputs."""
+    """构建用于保存测试集预测结果的 DataFrame。"""
     predictions = test_data[[MESSAGE_COLUMN, LABEL_COLUMN, TARGET_COLUMN]].copy()
     predictions["predicted_target"] = predicted_targets
     predictions["predicted_label"] = predictions["predicted_target"].map({0: "ham", 1: "spam"})
@@ -114,7 +114,7 @@ def build_prediction_frame(
 
 
 def save_prediction_frame(frame: pd.DataFrame, path: str | Path) -> Path:
-    """Save test-set predictions as UTF-8 CSV."""
+    """将测试集预测结果保存为 UTF-8 编码的 CSV 文件。"""
     output = Path(path)
     output.parent.mkdir(parents=True, exist_ok=True)
     frame.to_csv(output, index=False, encoding="utf-8")
@@ -126,7 +126,8 @@ def save_error_analysis(
     false_positives_path: str | Path = FALSE_POSITIVES_PATH,
     false_negatives_path: str | Path = FALSE_NEGATIVES_PATH,
 ) -> dict[str, Path]:
-    """Save false-positive and false-negative cases from MLP predictions."""
+    """保存 MLP 预测中的假阳性和假阴性样本。"""
+    # 错误分析聚焦最终选中的 MLP，因为它是测试集中表现最强的模型。
     false_positives = prediction_frame[
         (prediction_frame[TARGET_COLUMN] == 0)
         & (prediction_frame["predicted_target"] == 1)
@@ -136,6 +137,7 @@ def save_error_analysis(
         & (prediction_frame["predicted_target"] == 0)
     ].copy()
 
+    # 按置信度排序，让最有代表性的错误样本排在 CSV 前面。
     false_positives = false_positives.sort_values(
         "spam_probability",
         ascending=False,
@@ -155,7 +157,7 @@ def save_error_analysis(
 
 
 def save_model_comparison(metrics_by_model: dict[str, dict[str, Any]]) -> Path:
-    """Save a final model comparison table."""
+    """保存最终模型对比表。"""
     rows = []
     for model_name, metrics in metrics_by_model.items():
         rows.append(
@@ -179,7 +181,8 @@ def evaluate_baseline_on_test(
     train_data: pd.DataFrame,
     test_data: pd.DataFrame,
 ) -> dict[str, Any]:
-    """Fit the majority baseline on training data and evaluate on test data."""
+    """在训练集上拟合多数类基线，并在测试集上评估。"""
+    # 基线模型也只用训练集拟合，保证和学习模型遵守同一实验协议。
     model: DummyClassifier = train_majority_baseline(train_data)
     predictions = model.predict(test_data[[MESSAGE_COLUMN]])
     metrics = evaluate_predictions(
@@ -197,7 +200,7 @@ def evaluate_logistic_on_test(
     test_data: pd.DataFrame,
     vectorizer: Any,
 ) -> dict[str, Any]:
-    """Load saved logistic regression and evaluate it on the test split."""
+    """加载已保存的逻辑回归模型，并在测试集上评估。"""
     model = load_logistic_model()
     test_features = vectorizer.transform(test_data[MESSAGE_COLUMN])
     predictions = model.predict(test_features).tolist()
@@ -228,7 +231,7 @@ def evaluate_mlp_on_test(
     test_data: pd.DataFrame,
     vectorizer: Any,
 ) -> tuple[dict[str, Any], pd.DataFrame]:
-    """Load saved MLP checkpoint and evaluate it on the test split."""
+    """加载已保存的 MLP checkpoint，并在测试集上评估。"""
     checkpoint = load_mlp_checkpoint()
     model = build_mlp_from_checkpoint(checkpoint)
     test_features = vectorizer.transform(test_data[MESSAGE_COLUMN])
@@ -256,7 +259,8 @@ def evaluate_mlp_on_test(
 
 
 def run_final_test_evaluation() -> dict[str, Any]:
-    """Run final test-set evaluation after validation-based model selection."""
+    """在基于验证集完成模型选择后运行最终测试集评估。"""
+    # 这是第一次使用固定测试集做模型对比，调参阶段不能调用这里。
     train_data = load_train_frame()
     test_data = load_test_frame()
     vectorizer = load_tfidf_vectorizer(TFIDF_VECTORIZER_PATH)

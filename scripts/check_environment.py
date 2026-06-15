@@ -1,4 +1,4 @@
-"""Report the local Python environment for reproducibility checks."""
+"""输出本地 Python 环境信息，用于复现性检查。"""
 
 from __future__ import annotations
 
@@ -21,10 +21,11 @@ PACKAGE_DISTRIBUTIONS = {
 
 
 def get_package_versions() -> dict[str, str | None]:
-    """Return installed package versions without importing heavy packages."""
+    """在不导入大型依赖的情况下返回已安装包版本。"""
     versions: dict[str, str | None] = {}
     for name, distribution in PACKAGE_DISTRIBUTIONS.items():
         try:
+            # 使用 metadata 查询版本，避免导入大型库带来的额外启动开销。
             versions[name] = metadata.version(distribution)
         except metadata.PackageNotFoundError:
             versions[name] = None
@@ -32,7 +33,7 @@ def get_package_versions() -> dict[str, str | None]:
 
 
 def get_torch_device_info() -> dict[str, Any]:
-    """Return basic PyTorch device information when torch is installed."""
+    """当 PyTorch 已安装时返回基础设备信息。"""
     try:
         import torch
     except ImportError:
@@ -51,7 +52,7 @@ def get_torch_device_info() -> dict[str, Any]:
 
 
 def main() -> None:
-    """Print environment information as formatted JSON."""
+    """以格式化 JSON 形式打印环境信息。"""
     report = {
         "os": platform.platform(),
         "python_version": sys.version,

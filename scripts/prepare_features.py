@@ -1,4 +1,4 @@
-"""Run phase-three splitting and TF-IDF preparation."""
+"""运行第三阶段的数据切分和 TF-IDF 准备流程。"""
 
 from __future__ import annotations
 
@@ -10,6 +10,7 @@ from pathlib import Path
 
 PROJECT_ROOT = Path(__file__).resolve().parents[1]
 if str(PROJECT_ROOT) not in sys.path:
+    # 允许从项目根目录以外的位置运行脚本时仍能导入 src 包。
     sys.path.insert(0, str(PROJECT_ROOT))
 
 from src.config import (
@@ -36,7 +37,7 @@ from src.preprocess import (
 
 
 def parse_args() -> argparse.Namespace:
-    """Parse command-line arguments for preprocessing."""
+    """解析预处理脚本的命令行参数。"""
     parser = argparse.ArgumentParser(description="Prepare data splits and TF-IDF.")
     parser.add_argument(
         "--raw-data",
@@ -78,12 +79,13 @@ def parse_args() -> argparse.Namespace:
 
 
 def main() -> None:
-    """Run data cleaning, stratified splitting, and TF-IDF fitting."""
+    """运行数据清洗、分层切分和 TF-IDF 拟合。"""
     args = parse_args()
 
     raw_data = load_raw_sms_data(args.raw_data)
     cleaned_data = clean_sms_data(raw_data)
     splits = split_train_validation_test(cleaned_data)
+    # 切分后再次检查重叠，作为防数据泄漏的最后一道保护。
     validate_no_split_overlap(splits)
 
     split_paths = save_splits(

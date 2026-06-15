@@ -1,4 +1,4 @@
-"""Exploratory data analysis helpers for SMS spam classification."""
+"""短信垃圾分类项目的探索性数据分析工具。"""
 
 from __future__ import annotations
 
@@ -40,7 +40,7 @@ TEXT_STAT_COLUMNS = (
 
 
 def add_text_statistics(data: pd.DataFrame) -> pd.DataFrame:
-    """Add EDA-only text statistics without changing model input text."""
+    """添加仅用于 EDA 的文本统计特征，不改变模型输入文本。"""
     enriched = data.copy()
     messages = enriched[MESSAGE_COLUMN].fillna("").astype(str)
 
@@ -55,7 +55,7 @@ def add_text_statistics(data: pd.DataFrame) -> pd.DataFrame:
 
 
 def build_eda_summary(data: pd.DataFrame) -> dict[str, Any]:
-    """Build JSON-serializable EDA statistics from the provided data."""
+    """根据给定数据构建可保存为 JSON 的 EDA 统计摘要。"""
     enriched = add_text_statistics(data)
     quality_report = build_quality_report(data).to_dict()
 
@@ -96,7 +96,7 @@ def build_eda_summary(data: pd.DataFrame) -> dict[str, Any]:
 
 
 def save_json(data: dict[str, Any], path: str | Path) -> Path:
-    """Save a dictionary as UTF-8 JSON."""
+    """将字典保存为 UTF-8 编码的 JSON 文件。"""
     output_path = Path(path)
     output_path.parent.mkdir(parents=True, exist_ok=True)
     output_path.write_text(
@@ -107,7 +107,7 @@ def save_json(data: dict[str, Any], path: str | Path) -> Path:
 
 
 def plot_class_distribution(data: pd.DataFrame, output_path: str | Path) -> Path:
-    """Plot ham/spam class counts."""
+    """绘制正常短信和垃圾短信的类别数量图。"""
     output = Path(output_path)
     output.parent.mkdir(parents=True, exist_ok=True)
 
@@ -120,6 +120,7 @@ def plot_class_distribution(data: pd.DataFrame, output_path: str | Path) -> Path
     ax.set_ylim(0, max(counts.values) * 1.12 if len(counts.values) else 1)
     total_count = int(counts.sum())
     for index, value in enumerate(counts.values):
+        # 同时显示数量和比例，让类别不均衡在一张图里就能看清楚。
         proportion = value / total_count if total_count else 0.0
         ax.text(
             index,
@@ -143,13 +144,14 @@ def plot_distribution_by_label(
     x_limits: tuple[float, float] | None = None,
     y_label: str | None = None,
 ) -> Path:
-    """Plot a histogram for an EDA statistic grouped by label."""
+    """按类别绘制某个 EDA 统计量的直方图。"""
     output = Path(output_path)
     output.parent.mkdir(parents=True, exist_ok=True)
 
     fig, ax = plt.subplots(figsize=(7, 4))
     for label in VALID_LABELS:
         values = data.loc[data[LABEL_COLUMN] == label, column]
+        # density=True 比较的是分布形状，而不是两类样本的绝对数量。
         ax.hist(
             values,
             bins=30,
@@ -173,7 +175,7 @@ def plot_digit_and_exclamation_distributions(
     data: pd.DataFrame,
     output_path: str | Path,
 ) -> Path:
-    """Plot digit and exclamation-count distributions by label."""
+    """按类别绘制数字数量和感叹号数量分布图。"""
     output = Path(output_path)
     output.parent.mkdir(parents=True, exist_ok=True)
 
@@ -205,7 +207,7 @@ def generate_eda_outputs(
     figures_dir: str | Path = EDA_FIGURES_DIR,
     summary_path: str | Path = METRICS_DIR / "eda_summary.json",
 ) -> dict[str, Path]:
-    """Generate the required phase-two EDA summary and figures."""
+    """生成第二阶段所需的 EDA 摘要和图像。"""
     figures = Path(figures_dir)
     enriched = add_text_statistics(data)
 
